@@ -230,32 +230,32 @@ class GamificationRpgService
         bool $subioNivel,
         array $misionesCompletadas
     ): string {
-        $lore = "⚔️ **¡BATALLA COMPLETADA CON ÉXITO, " . strtoupper($nombre) . "!** ⚔️\n\n";
+        $lore = "⚔️ ¡BATALLA COMPLETADA CON ÉXITO, " . strtoupper($nombre) . "! ⚔️\n\n";
 
         if ($subioNivel) {
-            $lore .= "🔥 **¡HAZ ASCENDIDO DE RANGO!** 🔥\n";
-            $lore .= "Los dioses de Hyperion reconocen tu tenacidad. Has alcanzado el **Nivel {$nivel}: {$titulo}**.\n\n";
+            $lore .= "🔥 ¡HAZ ASCENDIDO DE RANGO! 🔥\n";
+            $lore .= "Los dioses de Hyperion reconocen tu tenacidad. Has alcanzado el Nivel {$nivel}: {$titulo}.\n\n";
         } else {
-            $lore .= "Tu disciplina como **{$titulo} (Nivel {$nivel})** forja un espíritu inquebrantable.\n\n";
+            $lore .= "Tu disciplina como {$titulo} (Nivel {$nivel}) forja un espíritu inquebrantable.\n\n";
         }
 
-        $lore .= "✨ **Recompensa de batalla:** +{$xpGanada} XP acumulados.\n";
-        $lore .= "💎 **Experiencia Total:** {$xpTotal} XP\n";
+        $lore .= "✨ Recompensa de batalla: +{$xpGanada} XP acumulados.\n";
+        $lore .= "💎 Experiencia Total: {$xpTotal} XP\n";
 
         if ($xpFaltante > 0) {
-            $lore .= "🎯 **Siguiente Ascenso:** Te faltan solo **{$xpFaltante} XP** para alcanzar tu próxima categoría.\n";
+            $lore .= "🎯 Siguiente Ascenso: Te faltan solo {$xpFaltante} XP para alcanzar tu próxima categoría.\n";
         } else {
-            $lore .= "👑 **Rango Máximo:** Eres el epítome de un Titán de Hyperion.\n";
+            $lore .= "👑 Rango Máximo: Eres el epítome de un Titán de Hyperion.\n";
         }
 
         if (!empty($misionesCompletadas)) {
-            $lore .= "\n📜 **¡MISIÓN CUMPLIDA!**\n";
+            $lore .= "\n📜 ¡MISIÓN CUMPLIDA!\n";
             foreach ($misionesCompletadas as $m) {
-                $lore .= "- *{$m['titulo']}* (+{$m['xp_extra']} XP extra bonificados)\n";
+                $lore .= "- {$m['titulo']} (+{$m['xp_extra']} XP extra bonificados)\n";
             }
         }
 
-        $lore .= "\n*Descansa, hidrátate y prepárate. Mañana la forja continuará.*";
+        $lore .= "\nDescansa, hidrátate y prepárate. Mañana la forja continuará.";
 
         return $lore;
     }

@@ -27,28 +27,28 @@ class ConversationalChatbotService
 
         // 1. Guardrail de Emergencia Médica Inmediata (REG-SEG-05)
         if ($this->detectarEmergenciaMedica($mensajeLimpio)) {
-            return [
+            return $this->formatearRespuesta([
                 'emisor' => 'hyperion',
                 'tipo' => 'alerta_emergencia',
-                'texto' => "🚨 **¡ALTO, AVENTURERO! Tu seguridad es primordial.**\n\nHe detectado que refieres dolor agudo, mareos o molestia torácica. Suspende de inmediato cualquier actividad física, siéntate en un lugar fresco y seguro, y acude o llama a un profesional de la salud o servicio de urgencias médicas. Hyperion no prescribirá ejercicios bajo estas circunstancias.",
+                'texto' => "🚨 ¡ALTO, AVENTURERO! Tu seguridad es primordial.\n\nHe detectado que refieres dolor agudo, mareos o molestia torácica. Suspende de inmediato cualquier actividad física, siéntate en un lugar fresco y seguro, y acude o llama a un profesional de la salud o servicio de urgencias médicas. Hyperion no prescribirá ejercicios bajo estas circunstancias.",
                 'rutina' => null,
                 'perfil_actualizado' => false,
-            ];
+            ]);
         }
 
         // 2. Consulta de Historial de Entrenamientos (HU #12)
         if ($this->esConsultaHistorial($mensajeLimpio)) {
-            return $this->generarRespuestaHistorial($user);
+            return $this->formatearRespuesta($this->generarRespuestaHistorial($user));
         }
 
         // 3. Consulta de Explicabilidad ("Cómo y por qué") (HU #15)
         if ($this->esConsultaExplicabilidad($mensajeLimpio)) {
-            return $this->generarRespuestaExplicabilidad($user);
+            return $this->formatearRespuesta($this->generarRespuestaExplicabilidad($user));
         }
 
         // 4. Confirmación de Rutina Completada / Feedback (HU #12, #13, #14)
         if ($this->esConfirmacionFinalizacion($mensajeLimpio)) {
-            return $this->generarRespuestaFinalizacion($user, $mensajeLimpio);
+            return $this->formatearRespuesta($this->generarRespuestaFinalizacion($user, $mensajeLimpio));
         }
 
         // 5. Extracción de Entidades y Parámetros en Lenguaje Natural (HU #7)
@@ -86,7 +86,7 @@ class ConversationalChatbotService
 
             $rutinaGenerada = $this->routineGenerator->generarRutina($user);
 
-            $textoRespuesta = "⚡ **¡RUTINA PREPARADA POR HYPERION!** ⚡\n\n";
+            $textoRespuesta = "⚡ ¡RUTINA PREPARADA POR HYPERION! ⚡\n\n";
 
             // Si hay aviso médico obligatorio (HU #11), mostrarlo de forma destacada
             if (!empty($rutinaGenerada['aviso_medico'])) {
@@ -94,39 +94,79 @@ class ConversationalChatbotService
             }
 
             if (!empty($rutinaGenerada['aviso_micro_rutina'])) {
-                $textoRespuesta .= "ℹ️ *{$rutinaGenerada['aviso_micro_rutina']}*\n\n";
+                $textoRespuesta .= "ℹ️ {$rutinaGenerada['aviso_micro_rutina']}\n\n";
             }
 
             if (!empty($rutinaGenerada['aviso_sobrecarga'])) {
-                $textoRespuesta .= "📈 *{$rutinaGenerada['aviso_sobrecarga']}*\n\n";
+                $textoRespuesta .= "📈 {$rutinaGenerada['aviso_sobrecarga']}\n\n";
             }
 
-            $textoRespuesta .= "**Título:** {$rutinaGenerada['titulo']}\n";
-            $textoRespuesta .= "⏱️ **Duración:** {$rutinaGenerada['duracion_minutos']} minutos\n";
-            $textoRespuesta .= "🛡️ **Arquetipo:** " . ucfirst(str_replace('_', ' ', $rutinaGenerada['arquetipo'])) . "\n";
-            $textoRespuesta .= "💎 **Recompensa estimada:** +{$rutinaGenerada['xp_estimada']} XP\n\n";
+            $textoRespuesta .= "Título: {$rutinaGenerada['titulo']}\n";
+            $textoRespuesta .= "⏱️ Duración: {$rutinaGenerada['duracion_minutos']} minutos\n";
+            $textoRespuesta .= "🛡️ Arquetipo: " . ucfirst(str_replace('_', ' ', $rutinaGenerada['arquetipo'])) . "\n";
+            $textoRespuesta .= "💎 Recompensa estimada: +{$rutinaGenerada['xp_estimada']} XP\n\n";
 
-            $textoRespuesta .= "### 📋 Plan de Ejercicios:\n";
+            $textoRespuesta .= "📋 Plan de Ejercicios:\n";
             foreach ($rutinaGenerada['ejercicios'] as $idx => $ej) {
                 $num = $idx + 1;
-                $textoRespuesta .= "{$num}. **{$ej['nombre']}** ({$ej['musculo']})\n";
+                $textoRespuesta .= "{$num}. {$ej['nombre']} ({$ej['musculo']})\n";
                 $textoRespuesta .= "   - {$ej['series']} series de {$ej['repeticiones']} repeticiones (Descanso: {$ej['descanso_segundos']}s)\n";
-                $textoRespuesta .= "   - 💡 *Técnica:* {$ej['indicacion_postural']}\n";
+                $textoRespuesta .= "   - 💡 Técnica: {$ej['indicacion_postural']}\n";
             }
 
-            $textoRespuesta .= "\n¿Deseas saber **cómo y por qué** se construyó esta rutina? Escribe *'¿Por qué esta rutina?'*. Cuando termines de entrenar, avísame con *'Terminé la rutina'* para sumar tus puntos de experiencia.";
+            $textoRespuesta .= "\n¿Deseas saber cómo y por qué se construyó esta rutina? Escribe '¿Por qué esta rutina?'. Cuando termines de entrenar, avísame con 'Terminé la rutina' para sumar tus puntos de experiencia.";
 
-            return [
+            return $this->formatearRespuesta([
                 'emisor' => 'hyperion',
                 'tipo' => 'rutina_generada',
                 'texto' => $textoRespuesta,
                 'rutina' => $rutinaGenerada,
                 'perfil_actualizado' => true,
-            ];
+            ]);
         }
 
         // 7. Flujo de Entrevista Conversacional Adaptativa (HU #7)
-        return $this->continuarEntrevistaConversacional($user, $mensajeLimpio);
+        return $this->formatearRespuesta($this->continuarEntrevistaConversacional($user, $mensajeLimpio));
+    }
+
+    /**
+     * Limpia y formatea la respuesta final para asegurar texto plano sin Markdown.
+     */
+    protected function formatearRespuesta(array $respuesta): array
+    {
+        if (isset($respuesta['texto'])) {
+            $respuesta['texto'] = $this->limpiarTextoMarkdown($respuesta['texto']);
+        }
+        return $respuesta;
+    }
+
+    /**
+     * Limpia completamente caracteres y formato Markdown mediante expresiones regulares (Regex).
+     */
+    public function limpiarTextoMarkdown(?string $texto): string
+    {
+        if (empty($texto)) {
+            return '';
+        }
+
+        // Eliminar bloques de código ```...```
+        $texto = preg_replace('/```[\s\S]*?```/', '', $texto);
+        // Eliminar código en línea `...`
+        $texto = preg_replace('/`([^`]+)`/', '$1', $texto);
+        // Eliminar encabezados Markdown (#, ##, ###, etc.)
+        $texto = preg_replace('/^\s*#{1,6}\s+/m', '', $texto);
+        // Eliminar negritas y cursivas (***, **, *, ___, __, _)
+        $texto = preg_replace('/(\*{1,3}|_{1,3})([\s\S]*?)\1/', '$2', $texto);
+        // Eliminar asteriscos y guiones bajos residuales sueltos
+        $texto = str_replace(['**', '*', '__', '_'], '', $texto);
+        // Eliminar tachado ~~texto~~
+        $texto = preg_replace('/~~(.*?)~~/', '$1', $texto);
+        // Eliminar enlaces [texto](url)
+        $texto = preg_replace('/\[(.*?)\]\([^)]+\)/', '$1', $texto);
+        // Eliminar citas Markdown (> texto)
+        $texto = preg_replace('/^\s*>\s+/m', '', $texto);
+
+        return trim($texto);
     }
 
     /**
@@ -134,14 +174,14 @@ class ConversationalChatbotService
      */
     protected function continuarEntrevistaConversacional(User $user, string $mensaje): array
     {
-        $saludo = "¡Saludos, aventurero **{$user->name}**! Soy **HYPERION**, tu Titán mentor de acondicionamiento físico.\n\n";
+        $saludo = "¡Saludos, aventurero {$user->name}! Soy HYPERION, tu Titán mentor de acondicionamiento físico.\n\n";
 
         // Paso 1: Tiempo disponible
         if (empty($user->available_time_minutes) || $user->available_time_minutes === 0) {
             return [
                 'emisor' => 'hyperion',
                 'tipo' => 'pregunta_entrevista',
-                'texto' => $saludo . "Para forjar el plan ideal hoy, ¿de cuántos minutos dispones para tu sesión? (Por ejemplo: *15 min*, *30 min* o *poco tiempo*).",
+                'texto' => $saludo . "Para forjar el plan ideal hoy, ¿de cuántos minutos dispones para tu sesión? (Por ejemplo: 15 min, 30 min o poco tiempo).",
                 'rutina' => null,
                 'perfil_actualizado' => false,
             ];
@@ -152,7 +192,7 @@ class ConversationalChatbotService
             return [
                 'emisor' => 'hyperion',
                 'tipo' => 'pregunta_entrevista',
-                'texto' => "Excelente. ¿Dónde entrenarás hoy y qué equipamiento tienes a mano? (Por ejemplo: *en mi cuarto sin equipo*, *casa con mancuernas* o *en el gimnasio*).",
+                'texto' => "Excelente. ¿Dónde entrenarás hoy y qué equipamiento tienes a mano? (Por ejemplo: en mi cuarto sin equipo, casa con mancuernas o en el gimnasio).",
                 'rutina' => null,
                 'perfil_actualizado' => false,
             ];
@@ -163,7 +203,7 @@ class ConversationalChatbotService
             return [
                 'emisor' => 'hyperion',
                 'tipo' => 'pregunta_entrevista',
-                'texto' => "¿Presentas alguna molestia o lesión articular actualmente? (Por ejemplo: *dolor de rodilla*, *espalda baja*, *hombro* o *ninguna, estoy al 100%*).",
+                'texto' => "¿Presentas alguna molestia o lesión articular actualmente? (Por ejemplo: dolor de rodilla, espalda baja, hombro o ninguna, estoy al 100%).",
                 'rutina' => null,
                 'perfil_actualizado' => false,
             ];
@@ -173,7 +213,7 @@ class ConversationalChatbotService
         return [
             'emisor' => 'hyperion',
             'tipo' => 'conversacion_general',
-            'texto' => $saludo . "Tengo registrados tus parámetros actuales: **{$user->available_time_minutes} min**, entorno **" . str_replace('_', ' ', $user->environment) . "** y condición física **" . ($user->injury === 'ninguna' ? 'sin lesiones' : 'cuidando ' . $user->injury) . "**.\n\n¿Deseas que preparemos tu rutina ahora? Escribe **'Generar rutina'** o indícame si deseas ajustar algún dato.",
+            'texto' => $saludo . "Tengo registrados tus parámetros actuales: {$user->available_time_minutes} min, entorno " . str_replace('_', ' ', $user->environment) . " y condición física " . ($user->injury === 'ninguna' ? 'sin lesiones' : 'cuidando ' . $user->injury) . ".\n\n¿Deseas que preparemos tu rutina ahora? Escribe 'Generar rutina' o indícame si deseas ajustar algún dato.",
             'rutina' => null,
             'perfil_actualizado' => false,
         ];
@@ -312,17 +352,17 @@ class ConversationalChatbotService
             return [
                 'emisor' => 'hyperion',
                 'tipo' => 'historial',
-                'texto' => "📜 **REGISTRO DE BATALLAS DE HYPERION**\n\nAún no has registrado ninguna sesión de entrenamiento previa. ¡Es el momento perfecto para iniciar tu **Rutina de Calibración Inicial**! Escribe *'Quiero mi rutina'* para comenzar.",
+                'texto' => "📜 REGISTRO DE BATALLAS DE HYPERION\n\nAún no has registrado ninguna sesión de entrenamiento previa. ¡Es el momento perfecto para iniciar tu Rutina de Calibración Inicial! Escribe 'Quiero mi rutina' para comenzar.",
                 'rutina' => null,
                 'perfil_actualizado' => false,
             ];
         }
 
-        $texto = "📜 **CRÓNICA DE TUS ENTRENAMIENTOS (Últimas sesiones):**\n\n";
+        $texto = "📜 CRÓNICA DE TUS ENTRENAMIENTOS (Últimas sesiones):\n\n";
         foreach ($sesiones as $s) {
             $fecha = $s->created_at->format('d/m/Y H:i');
             $estadoIcon = ($s->status === 'completada') ? '✅' : '⏳';
-            $texto .= "{$estadoIcon} **{$s->title}**\n";
+            $texto .= "{$estadoIcon} {$s->title}\n";
             $texto .= "   - Fecha: {$fecha}\n";
             $texto .= "   - Duración: {$s->total_duration_minutes} min | Estado: " . ucfirst($s->status) . "\n";
             $texto .= "   - Dificultad reportada: " . ($s->difficulty_rating ? ucfirst(str_replace('_', ' ', $s->difficulty_rating)) : 'Sin calificar') . "\n";
@@ -363,15 +403,15 @@ class ConversationalChatbotService
         $data = $ultimaSesion->explainability_data;
         $criterios = $data['criterios_origen'] ?? [];
 
-        $texto = "🔍 **CÓMO Y POR QUÉ SE DISEÑÓ TU RUTINA (EXPLICABILIDAD DE HYPERION)**\n\n";
+        $texto = "🔍 CÓMO Y POR QUÉ SE DISEÑÓ TU RUTINA (EXPLICABILIDAD DE HYPERION)\n\n";
         $texto .= "{$data['explicacion_texto']}\n\n";
 
-        $texto .= "### 🧩 Origen de las decisiones tomadas:\n";
-        $texto .= "1. **Tus respuestas en la entrevista:** {$criterios['entrevista']}\n";
-        $texto .= "2. **Reglas de seguridad biomecánica:** {$criterios['biometricos_seguridad']}\n";
-        $texto .= "3. **Protección contra lesiones:** {$criterios['lesiones']}\n";
-        $texto .= "4. **Memoria de progreso:** {$criterios['historial']}\n\n";
-        $texto .= "*Cada ejercicio fue filtrado por el motor clínico para asegurar máxima efectividad sin poner en riesgo tu salud.*";
+        $texto .= "🧩 Origen de las decisiones tomadas:\n";
+        $texto .= "1. Tus respuestas en la entrevista: {$criterios['entrevista']}\n";
+        $texto .= "2. Reglas de seguridad biomecánica: {$criterios['biometricos_seguridad']}\n";
+        $texto .= "3. Protección contra lesiones: {$criterios['lesiones']}\n";
+        $texto .= "4. Memoria de progreso: {$criterios['historial']}\n\n";
+        $texto .= "Cada ejercicio fue filtrado por el motor clínico para asegurar máxima efectividad sin poner en riesgo tu salud.";
 
         return [
             'emisor' => 'hyperion',
@@ -396,7 +436,7 @@ class ConversationalChatbotService
             return [
                 'emisor' => 'hyperion',
                 'tipo' => 'info',
-                'texto' => "No tienes ninguna rutina activa en progreso en este momento. Escribe *'Quiero entrenar'* para iniciar una nueva misión.",
+                'texto' => "No tienes ninguna rutina activa en progreso en este momento. Escribe 'Quiero entrenar' para iniciar una nueva misión.",
                 'rutina' => null,
                 'perfil_actualizado' => false,
             ];

@@ -381,7 +381,32 @@
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         let rutinaActual = null;
 
-        // Auto-scroll chat
+        /**
+         * Limpieza de formato (Eliminar caracteres Markdown) mediante Regex
+         * Asegura texto plano limpio: remueve *, **, #, _, bloques de código, etc.
+         */
+        function limpiarMarkdown(texto) {
+            if (!texto) return '';
+            return texto
+                // Eliminar bloques de código ```...``` y código en línea `...`
+                .replace(/```[\s\S]*?```/g, '')
+                .replace(/`([^`]+)`/g, '$1')
+                // Eliminar encabezados Markdown (#, ##, ###, etc.) al inicio de línea
+                .replace(/^\s*#{1,6}\s+/gm, '')
+                // Eliminar negritas y cursivas (***texto***, **texto**, *texto*, ___texto___, __texto__, _texto_)
+                .replace(/(\*{1,3}|_{1,3})([\s\S]*?)\1/g, '$2')
+                // Eliminar asteriscos y guiones bajos residuales sueltos
+                .replace(/[\*_]/g, '')
+                // Eliminar tachado ~~texto~~
+                .replace(/~~(.*?)~~/g, '$1')
+                // Eliminar enlaces [texto](url) dejando solo el texto
+                .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+                // Eliminar citas Markdown (> texto)
+                .replace(/^\s*>\s+/gm, '')
+                .trim();
+        }
+
+        // Auto-scroll para mensajes del usuario
         function scrollChatToEnd() {
             const container = document.getElementById('chat-messages');
             container.scrollTop = container.scrollHeight;
@@ -393,14 +418,27 @@
             const div = document.createElement('div');
             
             if (emisor === 'hyperion') {
+                const textoLimpio = limpiarMarkdown(texto);
                 div.className = 'chat-bubble-hyperion rounded-xl p-4 max-w-[92%] sm:max-w-[85%]';
                 div.innerHTML = `
                     <div class="flex items-center space-x-2 mb-1.5 text-xs text-amber-400 font-semibold">
                         <i class="fa-solid fa-shield-halved"></i>
                         <span>HYPERION</span>
                     </div>
-                    <div class="text-sm leading-relaxed text-slate-200 whitespace-pre-line">${texto}</div>
+                    <div class="text-sm leading-relaxed text-slate-200 whitespace-pre-line">${textoLimpio}</div>
                 `;
+                container.appendChild(div);
+
+                // Comportamiento de Scroll (Lectura desde el inicio):
+                // Se desactiva el scroll hacia el bottom y se posiciona suavemente al inicio
+                // del nuevo mensaje del bot para que el usuario lea desde el primer párrafo.
+                setTimeout(() => {
+                    const topPos = div.offsetTop - container.offsetTop - 8;
+                    container.scrollTo({
+                        top: Math.max(0, topPos),
+                        behavior: 'smooth'
+                    });
+                }, 40);
             } else {
                 div.className = 'chat-bubble-user rounded-xl p-4 max-w-[92%] sm:max-w-[85%] ml-auto';
                 div.innerHTML = `
@@ -410,10 +448,9 @@
                     </div>
                     <div class="text-sm leading-relaxed text-slate-200 whitespace-pre-line">${texto}</div>
                 `;
+                container.appendChild(div);
+                scrollChatToEnd();
             }
-
-            container.appendChild(div);
-            scrollChatToEnd();
         }
 
         // Enviar mensaje al chatbot vía AJAX

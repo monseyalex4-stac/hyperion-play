@@ -291,7 +291,7 @@ class RoutineGeneratorService
 
         // Salud y seguridad articular
         if ($tieneLesion) {
-            $partes[] = "Dado que reportaste sensibilidad en la zona de **{$perfil['lesion']}**, excluimos con estricta prioridad cualquier movimiento que cargue esa articulación, enfocándonos en estabilidad suave y segura.";
+            $partes[] = "Dado que reportaste sensibilidad en la zona de {$perfil['lesion']}, excluimos con estricta prioridad cualquier movimiento que cargue esa articulación, enfocándonos en estabilidad suave y segura.";
         } elseif ($bajoImpacto) {
             $partes[] = "Para cuidar tus articulaciones y asegurar una transición saludable, seleccioné únicamente ejercicios de bajo impacto articular, libres de saltos y cargas bruscas.";
         }
