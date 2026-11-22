@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Services\GamificationRpgService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\Request;
 
 class HyperionViewController extends Controller
 {
@@ -15,9 +16,15 @@ class HyperionViewController extends Controller
         $this->rpgService = $rpgService;
     }
 
-    public function index(): View
+    public function index(Request $request): View
     {
-        $user = User::first();
+        $userId = $request->query('user_id');
+        $user = $userId ? User::find($userId) : null;
+
+        if (!$user) {
+            $user = User::first();
+        }
+
         if (!$user) {
             $user = User::create([
                 'name' => 'Santiago (Aventurero)',
@@ -38,12 +45,14 @@ class HyperionViewController extends Controller
             ]);
         }
 
+        $allUsers = User::orderBy('id', 'asc')->get();
         $user->load('quests');
-        $nivelInfo = $this->rpgService->obtenerInfoNivelPorXp($user->current_xp);
+        $nivelInfo = $this->rpgService->obtenerInfoNivelPorXp($user->current_xp ?? 0);
         $sesiones = $user->workoutSessions()->latest()->take(5)->get();
 
         return view('hyperion', [
             'user' => $user,
+            'allUsers' => $allUsers,
             'nivelInfo' => $nivelInfo,
             'sesiones' => $sesiones,
         ]);

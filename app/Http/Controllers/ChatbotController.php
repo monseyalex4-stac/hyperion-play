@@ -78,6 +78,7 @@ class ChatbotController extends Controller
     {
         $request->validate([
             'message' => 'required|string|max:1000',
+            'user_id' => 'nullable|integer',
         ]);
 
         $user = $this->resolveUser($request);
@@ -104,6 +105,65 @@ class ChatbotController extends Controller
                 'rpg_title' => $user->rpg_title,
                 'quests' => $user->quests,
             ],
+        ]);
+    }
+
+    /**
+     * Crear un nuevo usuario/aventurero para iniciar una sesión limpia.
+     */
+    public function createUser(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name'                   => 'required|string|max:100',
+            'age'                    => 'nullable|integer|min:12|max:100',
+            'gender'                 => 'nullable|string',
+            'weight_kg'              => 'nullable|numeric|min:30|max:300',
+            'height_cm'              => 'nullable|numeric|min:100|max:250',
+            'body_fat_pct'           => 'nullable|numeric|min:3|max:60',
+            'environment'            => 'nullable|string|in:casa_sin_equipo,casa_basico,gimnasio',
+            'available_time_minutes' => 'nullable|integer|min:5|max:120',
+            'injury'                 => 'nullable|string',
+            'fitness_goal'           => 'nullable|string',
+        ]);
+
+        $email = 'aventurero_' . time() . '_' . rand(100, 999) . '@hyperionplay.com';
+
+        $newUser = User::create([
+            'name'                   => $validated['name'],
+            'email'                  => $email,
+            'password'               => bcrypt('secret123'),
+            'age'                    => $validated['age'] ?? 25,
+            'gender'                 => $validated['gender'] ?? 'no_disponible',
+            'weight_kg'              => $validated['weight_kg'] ?? 70.0,
+            'height_cm'              => $validated['height_cm'] ?? 170.0,
+            'body_fat_pct'           => $validated['body_fat_pct'] ?? 18.0,
+            'environment'            => $validated['environment'] ?? 'casa_sin_equipo',
+            'available_time_minutes' => $validated['available_time_minutes'] ?? 15,
+            'injury'                 => $validated['injury'] ?? 'ninguna',
+            'fitness_goal'           => $validated['fitness_goal'] ?? 'resistencia',
+            'archetype'              => 'titan_agil',
+            'current_level'          => 1,
+            'current_xp'             => 0,
+            'rpg_title'              => 'Aspirante',
+            'interview_completed'    => false,
+        ]);
+
+        // Misión inicial
+        \App\Models\UserQuest::create([
+            'user_id'       => $newUser->id,
+            'quest_key'     => 'mision_calibracion_' . $newUser->id,
+            'title'         => 'El Despertar del Guerrero',
+            'description'   => 'Completa tu primera sesión guiada por Hyperion',
+            'target_count'  => 1,
+            'current_count' => 0,
+            'reward_xp'     => 30,
+            'completed'     => false,
+        ]);
+
+        return response()->json([
+            'success'  => true,
+            'user'     => $newUser,
+            'redirect' => route('hyperion.index', ['user_id' => $newUser->id]),
         ]);
     }
 

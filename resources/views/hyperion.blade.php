@@ -101,11 +101,25 @@
                             Lv
                         </div>
                     </div>
-                    <div>
-                        <div class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Aventurero Activo</div>
-                        <div id="hud-nombre" class="font-bold text-white text-base">{{ $user->name }}</div>
-                        <div id="hud-titulo" class="text-xs text-amber-400 font-medium flex items-center space-x-1">
-                            <i class="fa-solid fa-crown text-[10px]"></i>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between gap-2 mb-1">
+                            <span class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Aventurero Activo</span>
+                            <button onclick="abrirModalNuevoUsuario()" class="text-[10px] px-2 py-0.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-lg transition font-medium flex items-center gap-1">
+                                <i class="fa-solid fa-user-plus text-[9px]"></i>
+                                <span>Nuevo</span>
+                            </button>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <select id="selector-aventurero" onchange="cambiarUsuario(this.value)" class="w-full bg-slate-900 border border-slate-700 hover:border-amber-500/50 text-white font-bold text-xs rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-amber-500">
+                                @foreach($allUsers as $u)
+                                    <option value="{{ $u->id }}" {{ $u->id == $user->id ? 'selected' : '' }}>
+                                        {{ $u->name }} (Lv {{ $u->current_level }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div id="hud-titulo" class="text-[11px] text-amber-400 font-medium flex items-center space-x-1 mt-1 truncate">
+                            <i class="fa-solid fa-crown text-[9px]"></i>
                             <span>{{ $user->rpg_title }}</span>
                         </div>
                     </div>
@@ -377,8 +391,79 @@
         </div>
     </div>
 
+    <!-- Modal Nuevo Aventurero -->
+    <div id="modal-nuevo-usuario" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="rpg-card rounded-2xl max-w-md w-full p-6 flex flex-col space-y-4 border border-slate-800">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-user-plus text-amber-400"></i>
+                    <h3 class="font-bold text-white text-base">Crear Nuevo Aventurero</h3>
+                </div>
+                <button onclick="cerrarModalNuevoUsuario()" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="form-nuevo-usuario" onsubmit="guardarNuevoUsuario(event)" class="space-y-3.5 text-xs">
+                <div>
+                    <label class="block text-slate-300 font-medium mb-1">Nombre o Alias del Aventurero *</label>
+                    <input type="text" id="nuevo-nombre" required placeholder="Ej: Valeria, Carlos, David..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">Edad</label>
+                        <input type="number" id="nuevo-edad" min="12" max="100" value="25" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">Género</label>
+                        <select id="nuevo-genero" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-amber-500">
+                            <option value="no_disponible">Prefiero no decir</option>
+                            <option value="femenino">Femenino</option>
+                            <option value="masculino">Masculino</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">Peso (kg)</label>
+                        <input type="number" step="0.5" id="nuevo-peso" value="70" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-white focus:outline-none focus:ring-1 focus:ring-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">Altura (cm)</label>
+                        <input type="number" id="nuevo-altura" value="170" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-white focus:outline-none focus:ring-1 focus:ring-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">% Grasa</label>
+                        <input type="number" step="0.5" id="nuevo-grasa" value="18" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-white focus:outline-none focus:ring-1 focus:ring-amber-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-slate-300 font-medium mb-1">Entorno de Entrenamiento Preferido</label>
+                    <select id="nuevo-entorno" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-amber-500">
+                        <option value="casa_sin_equipo">Casa sin equipo (Calistenia / Peso corporal)</option>
+                        <option value="casa_basico">Casa con equipo ligero (Mancuernas / Bandas)</option>
+                        <option value="gimnasio">Gimnasio comercial completo</option>
+                    </select>
+                </div>
+
+                <div class="pt-3 border-t border-slate-800 flex justify-end gap-2">
+                    <button type="button" onclick="cerrarModalNuevoUsuario()" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold shadow-lg shadow-amber-500/20">
+                        Comenzar Aventura
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        const activeUserId = {{ $user->id }};
         let rutinaActual = null;
 
         /**
@@ -470,7 +555,7 @@
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': csrfToken,
                     },
-                    body: JSON.stringify({ message: text }),
+                    body: JSON.stringify({ message: text, user_id: activeUserId }),
                 });
 
                 const data = await response.json();
@@ -571,6 +656,7 @@
                         'X-CSRF-TOKEN': csrfToken,
                     },
                     body: JSON.stringify({
+                        user_id: activeUserId,
                         difficulty_rating: dificultad,
                         fatigue_reported: fatiga,
                         progressive_overload_accepted: (dificultad === 'muy_facil')
@@ -598,7 +684,7 @@
             document.getElementById('hud-nivel-icon').innerText = user.current_level;
 
             // Recalcular nivel y barra
-            fetch('/api/user/profile')
+            fetch('/api/user/profile?user_id=' + activeUserId)
                 .then(r => r.json())
                 .then(data => {
                     if (data.status === 'success') {
@@ -717,6 +803,55 @@
             `;
             document.getElementById('rutina-placeholder').classList.remove('hidden');
             document.getElementById('rutina-contenido').classList.add('hidden');
+        }
+
+        // Gestión de múltiples usuarios / perfiles
+        function cambiarUsuario(userId) {
+            if (!userId) return;
+            window.location.href = '/hyperion?user_id=' + userId;
+        }
+
+        function abrirModalNuevoUsuario() {
+            document.getElementById('modal-nuevo-usuario').classList.remove('hidden');
+            document.getElementById('nuevo-nombre').focus();
+        }
+
+        function cerrarModalNuevoUsuario() {
+            document.getElementById('modal-nuevo-usuario').classList.add('hidden');
+        }
+
+        async function guardarNuevoUsuario(event) {
+            event.preventDefault();
+            const payload = {
+                name: document.getElementById('nuevo-nombre').value.trim(),
+                age: parseInt(document.getElementById('nuevo-edad').value) || 25,
+                gender: document.getElementById('nuevo-genero').value,
+                weight_kg: parseFloat(document.getElementById('nuevo-peso').value) || 70,
+                height_cm: parseFloat(document.getElementById('nuevo-altura').value) || 170,
+                body_fat_pct: parseFloat(document.getElementById('nuevo-grasa').value) || 18,
+                environment: document.getElementById('nuevo-entorno').value,
+            };
+
+            try {
+                const response = await fetch('/api/user/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                if (data.success && data.redirect) {
+                    window.location.href = data.redirect;
+                } else {
+                    alert(data.message || 'Error al crear el nuevo aventurero.');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error al conectar con el servidor.');
+            }
         }
     </script>
 </body>
