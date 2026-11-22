@@ -1,0 +1,61 @@
+{
+  "lore": {
+    "nombre_asistente": "HYPERION",
+    "titulo": "Titán Mentor de Entrenamiento",
+    "arquetipos": [
+      {
+        "id": "titan_agil",
+        "nombre": "Titán Ágil",
+        "descripcion": "Enfoque en resistencia, movilidad, bajo impacto y agilidad metabólica."
+      },
+      {
+        "id": "guerrero_vanguardia",
+        "nombre": "Guerrero de Vanguardia",
+        "descripcion": "Enfoque equilibrado en hipertrofia funcional, fuerza y control corporal."
+      },
+      {
+        "id": "coloso_acero",
+        "nombre": "Coloso de Acero",
+        "descripcion": "Enfoque en sobrecarga progresiva, fuerza pura y desarrollo de masa muscular."
+      }
+    ]
+  },
+  "sistema_niveles": [
+    { "nivel": 1, "titulo": "Recluta de Hierro", "xp_min": 0, "xp_max": 99 },
+    { "nivel": 2, "titulo": "Guerrero de Cobre", "xp_min": 100, "xp_max": 249 },
+    { "nivel": 3, "titulo": "Caballero de Bronce", "xp_min": 250, "xp_max": 499 },
+    { "nivel": 4, "titulo": "Campeón de Plata", "xp_min": 500, "xp_max": 999 },
+    { "nivel": 5, "titulo": "Titán de Hyperion", "xp_min": 1000, "xp_max": 999999 }
+  ],
+  "recompensas": {
+    "xp_base_rutina": 50,
+    "xp_por_serie": 5,
+    "xp_ejercicio_principiante": 10,
+    "xp_ejercicio_intermedio": 15,
+    "xp_ejercicio_avanzado": 20,
+    "xp_mision_cumplida": 30
+  },
+  "misiones_semanales": [
+    {
+      "id": "mision_3_rutinas",
+      "titulo": "Constancia de Titán",
+      "descripcion": "Completa 3 rutinas en la semana",
+      "objetivo_cantidad": 3,
+      "xp_recompensa": 50
+    },
+    {
+      "id": "mision_calibracion",
+      "titulo": "El Despertar del Guerrero",
+      "descripcion": "Completa tu rutina de calibración inicial",
+      "objetivo_cantidad": 1,
+      "xp_recompensa": 30
+    },
+    {
+      "id": "mision_progresion",
+      "titulo": "Superando los Límites",
+      "descripcion": "Acepta y completa un reto de sobrecarga progresiva",
+      "objetivo_cantidad": 1,
+      "xp_recompensa": 40
+    }
+  ]
+}

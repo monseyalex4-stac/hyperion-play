@@ -1,0 +1,23 @@
+=======================================================
+       REPORTE DE LIMPIEZA DE DATOS — HYPERION PLAY    
+=======================================================
+
+1. Registros iniciales: 332
+2. Columnas iniciales: 18
+3. Duplicados eliminados: 0
+4. Descartados biológicos o valores nulos: 95
+5. Registros finales conservados: 237
+6. Normalización de unidades:
+   - Altura convertida a Height_cm (pulgadas a cm x 2.54)
+   - Peso convertido a Weight_kg (libras a kg x 0.453592)
+7. Rangos biológicos validados:
+   - Altura: [100 - 250 cm]
+   - Peso: [30 - 300 kg]
+   - Grasa Corporal: [3% - 60%]
+8. Ampliación demográfica (HU01 - Género):
+   - Columna incorporada: 'genero'
+   - Política de integridad: Asignación explícita de 'no_disponible'
+     debido a ausencia de metadatos o evidencia comprobable en el archivo
+     fuente original (no se infieren ni inventan valores).
+9. Archivo exportado: dataset_limpio.csv
+=======================================================

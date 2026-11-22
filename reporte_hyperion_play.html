@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Reporte Técnico y Arquitectura — HYPERION PLAY</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 18mm 16mm 18mm 16mm;
+            @bottom-right {
+                content: counter(page);
+            }
+        }
+        * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        body {
+            font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+            color: #1e293b;
+            background-color: #ffffff;
+            line-height: 1.5;
+            font-size: 10.5pt;
+            margin: 0;
+            padding: 0;
+        }
+        h1, h2, h3, h4 {
+            color: #0f172a;
+            margin-top: 1.2em;
+            margin-bottom: 0.5em;
+            font-weight: 700;
+        }
+        h1 {
+            font-size: 22pt;
+            border-bottom: 2px solid #f59e0b;
+            padding-bottom: 6px;
+            color: #b45309;
+        }
+        h2 {
+            font-size: 14pt;
+            border-left: 4px solid #f59e0b;
+            padding-left: 8px;
+            margin-top: 1.4em;
+            background-color: #fffbeb;
+            padding-top: 4px;
+            padding-bottom: 4px;
+        }
+        h3 {
+            font-size: 11.5pt;
+            color: #1e3a8a;
+            margin-top: 1em;
+        }
+        p {
+            margin: 0.5em 0;
+            text-align: justify;
+        }
+        .page-break {
+            page-break-after: always;
+            break-after: page;
+        }
+        .cover {
+            text-align: center;
+            padding-top: 60px;
+            padding-bottom: 60px;
+        }
+        .cover-badge {
+            display: inline-block;
+            background-color: #fef3c7;
+            color: #92400e;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 11pt;
+            border: 1px solid #fcd34d;
+            margin-bottom: 25px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .cover-title {
+            font-size: 30pt;
+            color: #0f172a;
+            margin: 0;
+            font-weight: 900;
+            letter-spacing: -0.5px;
+        }
+        .cover-subtitle {
+            font-size: 14pt;
+            color: #d97706;
+            margin-top: 12px;
+            font-weight: 600;
+        }
+        .cover-desc {
+            font-size: 11pt;
+            color: #64748b;
+            max-width: 520px;
+            margin: 25px auto 40px auto;
+            line-height: 1.6;
+        }
+        .cover-meta {
+            margin-top: 70px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 25px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            text-align: left;
+            font-size: 10pt;
+            color: #475569;
+            gap: 15px;
+        }
+        .meta-box strong {
+            display: block;
+            color: #0f172a;
+            font-size: 10.5pt;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0 16px 0;
+            font-size: 9.5pt;
+        }
+        th, td {
+            border: 1px solid #cbd5e1;
+            padding: 6px 9px;
+            text-align: left;
+        }
+        th {
+            background-color: #f8fafc;
+            color: #334155;
+            font-weight: 600;
+        }
+        tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 8.5pt;
+            font-weight: 700;
+        }
+        .badge-success {
+            background-color: #dcfce7;
+            color: #15803d;
+            border: 1px solid #86efac;
+        }
+        .badge-warning {
+            background-color: #fef3c7;
+            color: #b45309;
+            border: 1px solid #fde68a;
+        }
+        .badge-info {
+            background-color: #e0f2fe;
+            color: #0369a1;
+            border: 1px solid #bae6fd;
+        }
+        .alert-box {
+            padding: 10px 14px;
+            border-radius: 6px;
+            margin: 12px 0;
+            font-size: 9.5pt;
+        }
+        .alert-info {
+            background-color: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #166534;
+        }
+        .alert-warning {
+            background-color: #fffbeb;
+            border: 1px solid #fde68a;
+            color: #92400e;
+        }
+        .code-block {
+            background-color: #0f172a;
+            color: #e2e8f0;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-family: Consolas, 'Courier New', monospace;
+            font-size: 8.5pt;
+            margin: 10px 0;
+            overflow-x: auto;
+            line-height: 1.4;
+        }
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 14px 0;
+        }
+        .stat-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 8px 10px;
+            text-align: center;
+        }
+        .stat-val {
+            font-size: 15pt;
+            font-weight: 800;
+            color: #0f172a;
+        }
+        .stat-lbl {
+            font-size: 8pt;
+            color: #64748b;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+        ul, ol {
+            margin: 6px 0;
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- PORTADA -->
+    <div class="cover">
+        <div class="cover-badge">DOCUMENTO TÉCNICO OFICIAL & ARQUITECTURA DE SOFTWARE</div>
+        <h1 class="cover-title">HYPERION PLAY</h1>
+        <div class="cover-subtitle">Asistente Conversacional de Entrenamiento Físico Gamificado (RPG) con Gobernanza de IA y RAG</div>
+        
+        <p class="cover-desc">
+            Auditoría exhaustiva de Historias de Usuario #1 a #5, resolución de incompatibilidad de entornos, 
+            e implementación modular integral de las Historias de Usuario #5 a #15 en arquitectura MVC Laravel con integración a ExerciseDB, 
+            motor clínico biomecánico y gamificación Open Game Mechanics.
+        </p>
+
+        <div class="cover-meta">
+            <div class="meta-box">
+                <strong>Rol Técnico:</strong>
+                Arquitecto de Software Senior & Especialista en Gobernanza de IA
+            </div>
+            <div class="meta-box">
+                <strong>Proyecto & Repositorio:</strong>
+                monseyalex4-stac/hyperion-play
+            </div>
+            <div class="meta-box">
+                <strong>Stack Tecnológico:</strong>
+                PHP 8.3 / Laravel 13, Python 3.14, SQLite, JavaScript, RAG
+            </div>
+            <div class="meta-box">
+                <strong>Fecha de Publicación:</strong>
+                Noviembre 2026 — Sprint 1 & 2
+            </div>
+        </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- SECCIÓN 1: RESUMEN EJECUTIVO -->
+    <h2>1. Resumen Ejecutivo y Diagnóstico Inicial</h2>
+    <p>
+        El proyecto <strong>HYPERION PLAY</strong> tiene como misión proporcionar un asistente inteligente que prescribe rutinas de ejercicio físico totalmente personalizadas, seguras y adaptadas a las restricciones biomecánicas de cada usuario (porcentaje de grasa, edad, lesiones previas, tiempo y equipamiento), combinando una experiencia inmersiva estilo RPG de superación personal.
+    </p>
+    <p>
+        Al recibir el repositorio clonado, se realizó un diagnóstico integral de la infraestructura encontrando los siguientes hallazgos y desafíos críticos:
+    </p>
+    <ul>
+        <li><strong>Conflicto de PATH de PHP en Windows:</strong> El sistema invocaba por defecto PHP 8.0.30 (XAMPP), incompatible con los requerimientos de Laravel 13 y Symfony 8 (requieren &ge; PHP 8.3). Se resolvió identificando la instalación existente de PHP 8.3 WinGet, generando el archivo de entorno, ejecutando las migraciones SQLite y configurando el entorno.</li>
+        <li><strong>Desacoplamiento de Datasets Iniciales:</strong> Los archivos de las Historias de Usuario #1 a #5 se encontraban dispersos en carpetas aisladas del directorio de descargas. Se centralizaron e integraron bajo <code>storage/app/DATASET/</code> y <code>scripts/</code>.</li>
+        <li><strong>Compatibilidad de Entorno en Scripts de Métricas:</strong> El script de evaluación de la HU #5 requería dependencias externas (<code>pandas</code>) ausentes en Python 3.14. Se refactorizó hacia la biblioteca estándar de Python (<code>csv</code> y <code>json</code>) garantizando portabilidad absoluta en cualquier máquina sin instalaciones pesadas.</li>
+    </ul>
+
+    <!-- SECCIÓN 2: AUDITORÍA DE HU #1 A HU #5 -->
+    <h2>2. Auditoría y Consolidación de HU #1 a HU #5</h2>
+    <p>
+        Antes de proceder con la Fase 2, se verificó el cumplimiento estricto de los criterios de aceptación para las primeras cinco Historias de Usuario:
+    </p>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 14%;">Historia</th>
+                <th style="width: 16%;">Nombre</th>
+                <th style="width: 12%;">Estado</th>
+                <th style="width: 28%;">Archivos Clave en Proyecto</th>
+                <th>Criterios Cumplidos</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>HU #1</strong></td>
+                <td>Limpieza InBody</td>
+                <td><span class="badge badge-success">COMPLETO</span></td>
+                <td>
+                    <code>storage/app/DATASET/dataset_limpio.csv</code><br>
+                    <code>scripts/script_limpiar_hu01.py</code><br>
+                    <code>storage/app/DATASET/reporte_limpieza.txt</code>
+                </td>
+                <td>Eliminación de duplicados y nulos; conversión a cm y kg; filtros biológicos estrictos (100–250 cm, 30–300 kg, 3–60% grasa). 218 registros conservados.</td>
+            </tr>
+            <tr>
+                <td><strong>HU #2</strong></td>
+                <td>Unificación Catálogos</td>
+                <td><span class="badge badge-success">COMPLETO</span></td>
+                <td>
+                    <code>storage/app/DATASET/catalogo_ejercicios_base.json</code><br>
+                    <code>scripts/script_unificar_hu02.py</code>
+                </td>
+                <td>Fusión de <code>megaGymDataset.csv</code> y <code>exercises_dataset.json</code>; desduplicación por similitud de nombres y normalización de músculos.</td>
+            </tr>
+            <tr>
+                <td><strong>HU #3</strong></td>
+                <td>Etiquetado RAG</td>
+                <td><span class="badge badge-success">COMPLETO</span></td>
+                <td>
+                    <code>storage/app/DATASET/ejercicios_rag_etiquetados.json</code><br>
+                    <code>scripts/script_etiquetar_rag_hu03.py</code>
+                </td>
+                <td>Catálogo de 2,602 ejercicios enriquecidos con esquema completo: <code>nivel_impacto</code>, <code>nivel_experiencia</code>, <code>entorno</code>, <code>zonas_riesgo_evitar</code>, <code>tipo_objetivo</code>, <code>duracion_estimada_seg</code> y <code>xp_base</code>.</td>
+            </tr>
+            <tr>
+                <td><strong>HU #4</strong></td>
+                <td>Matriz de Reglas</td>
+                <td><span class="badge badge-success">COMPLETO</span></td>
+                <td>
+                    <code>storage/app/DATASET/reglas.json</code><br>
+                    <code>scripts/reglas_modelo.py</code><br>
+                    <code>DOCUMENTO_MAESTRO_REGLAS_CHATBOT.md</code>
+                </td>
+                <td>Reglas de seguridad clínica: edad > 45 o grasa > 25% restringen a bajo impacto; exclusión estricta de articulaciones lesionadas (rodilla, lumbar, hombro, muñeca).</td>
+            </tr>
+            <tr>
+                <td><strong>HU #5</strong></td>
+                <td>Validación y Métricas</td>
+                <td><span class="badge badge-success">COMPLETO</span></td>
+                <td>
+                    <code>scripts/script_evaluar_metricas_hu05.py</code><br>
+                    <code>storage/app/DATASET/reporte_metricas.txt</code>
+                </td>
+                <td>Evaluación automatizada sobre 20 perfiles variados cruzados contra 2,602 ejercicios (52,040 inferencias). Tasa de Falsos Positivos: <strong>0.0%</strong>. Precisión: <strong>100.00%</strong>.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="stat-grid">
+        <div class="stat-card">
+            <div class="stat-val" style="color: #16a34a;">44,227</div>
+            <div class="stat-lbl">Verdaderos Positivos (VP)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-val" style="color: #dc2626;">0</div>
+            <div class="stat-lbl">Falsos Positivos (FP - Meta: 0)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-val" style="color: #0284c7;">7,813</div>
+            <div class="stat-lbl">Verdaderos Negativos (VN)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-val" style="color: #d97706;">100.0%</div>
+            <div class="stat-lbl">Precisión Clínica Global</div>
+        </div>
+    </div>
+
+    <div class="alert-box alert-info">
+        <strong>Conclusión de Auditoría HU #5:</strong> La tasa de Falsos Positivos es de 0.0%, garantizando seguridad clínica absoluta: ningún ejercicio que comprometa articulaciones lesionadas o que exceda el nivel de impacto seguro es transmitido al motor de rutinas.
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- SECCIÓN 3: FASE 2 - IMPLEMENTACIÓN DE HU #5 A HU #15 EN LARAVEL -->
+    <h2>3. Implementación Integral en Laravel (HU #5 a HU #15)</h2>
+    <p>
+        Se implementaron de forma desacoplada y orientada a servicios las 11 Historias de Usuario solicitadas, respetando los estándares de Laravel y el principio de responsabilidad única (SOLID):
+    </p>
+
+    <h3>3.1. Arquitectura de Base de Datos y Modelos</h3>
+    <ul>
+        <li><strong>Migración de Perfil Extendido (<code>users</code>):</strong> Incorpora edad, peso (kg), altura (cm), porcentaje de grasa, entorno disponible (<code>casa_sin_equipo</code>, <code>casa_basico</code>, <code>gimnasio</code>), tiempo disponible, lesión activa, arquetipo RPG (<em>Titán Ágil</em>, <em>Guerrero de Vanguardia</em>, <em>Coloso de Acero</em>), nivel actual (1 a 5), XP acumulada y título de rango.</li>
+        <li><strong>Migración de Sesiones e Historial (<code>workout_sessions</code>):</strong> Almacena duración real, estado (<code>en_progreso</code>, <code>completada</code>, <code>abandonada</code>), calificación de esfuerzo percibido (RPE: <em>Muy Fácil</em>, <em>Adecuada</em>, <em>Muy Pesada</em>), reporte de fatiga, sobrecarga aplicada (% incremento), ejercicios en formato JSON y datos de explicabilidad.</li>
+        <li><strong>Migración de Misiones RPG (<code>user_quests</code>):</strong> Controla misiones semanales (ej. <em>Constancia de Titán</em>, <em>El Despertar del Guerrero</em>, <em>Superando los Límites</em>) y su recompensa en XP.</li>
+    </ul>
+
+    <h3>3.2. Catálogo RAG y Resiliencia con ExerciseDB (HU #6)</h3>
+    <p>
+        Implementado en <code>app/Services/ExerciseDbService.php</code> y <code>app/Services/RagCatalogService.php</code>:
+    </p>
+    <ul>
+        <li><strong>Consulta a API Externa:</strong> Conexión con reintentos exponenciales (<code>Http::retry(2, 400)</code>) hacia RapidAPI ExerciseDB por grupo muscular y equipamiento.</li>
+        <li><strong>Fallback Automático Inteligente:</strong> Si la API externa experimenta fallos de red, excede el límite de cuota (Rate Limit) o no cuenta con credenciales en <code>.env</code>, se registra automáticamente una advertencia técnica en los logs de Laravel (<code>Log::warning</code>) y se conmuta en milisegundos hacia el catálogo RAG local de 2,602 ejercicios.</li>
+        <li><strong>Normalización de Esquema:</strong> Mapeo automático de nombres, grupos musculares, entornos, cálculo predictivo de impacto articular y zonas de riesgo para ejercicios foráneos.</li>
+    </ul>
+
+    <h3>3.3. Entrevista Conversacional Adaptativa (HU #7)</h3>
+    <p>
+        Implementado en <code>app/Services/ConversationalChatbotService.php</code>:
+    </p>
+    <ul>
+        <li><strong>Máquina de Estados de Entrevista:</strong> Guía al usuario preguntando tiempo disponible, entorno/equipo disponible y lesiones o limitaciones físicas.</li>
+        <li><strong>Valores por Defecto Conservadores:</strong> Si el usuario omite datos o responde de forma ambigua, el sistema asigna de forma conservadora <code>tiempo: 15 min</code>, <code>entorno: casa_sin_equipo</code>, <code>lesion: ninguna</code> y <code>nivel_impacto: bajo</code>.</li>
+        <li><strong>Comprensión de Lenguaje Natural (NLP):</strong> Reglas que reconocen expresiones libres como <em>"media hora"</em>, <em>"poco tiempo"</em>, <em>"en mi cuarto sin nada"</em>, <em>"dolor de rodilla"</em>, <em>"al 100%"</em>.</li>
+        <li><strong>Guardrail de Emergencia Inmediata (REG-SEG-05):</strong> Si el usuario describe síntomas como dolor en el pecho, mareos intensos o falta de aire, el sistema aborta de inmediato la generación de ejercicios y despliega una alerta médica de parada de emergencia.</li>
+    </ul>
+
+    <h3>3.4. Generador de Rutinas y Reglas de Seguridad (HU #8, #9, #10, #11)</h3>
+    <p>
+        Implementado en <code>app/Services/RoutineGeneratorService.php</code>:
+    </p>
+    <ul>
+        <li><strong>HU #8 (Rutina Básica Personalizada):</strong> Ensamblado determinista de series, repeticiones, descansos y balance de grupos musculares.</li>
+        <li><strong>HU #9 (Bajo Impacto e Indicaciones Posturales):</strong> Restricción estricta ante grasa corporal > 25% o edad > 45 años. Inyección de consejos técnicos pedagógicos (ej. alineación de columna, respiración constante, apoyo en talones, activación del core) en cada movimiento para garantizar ejecución perfecta.</li>
+        <li><strong>HU #10 (Rutinas Rápidas 15 min y Micro-rutinas):</strong> Dimensionamiento preciso en &le; 900 segundos. Si por severidad de lesiones no es posible cubrir 15 minutos sin repetir articulaciones comprometidas, el sistema genera una <strong>micro-rutina válida (ej. 8–10 min)</strong>, notifica empáticamente al usuario y otorga XP proporcional.</li>
+        <li><strong>HU #11 (Rehabilitación y Aviso Médico Obligatorio):</strong> Identificación de la articulación afectada y exclusión estricta de cualquier ejercicio presente en <code>zonas_riesgo_evitar</code>. Despliegue obligatorio y visible en el chat antes de la rutina del descargo de responsabilidad médico: <em>"Hyperion Play no sustituye el diagnóstico ni la prescripción de un médico o fisioterapeuta"</em>.</li>
+    </ul>
+
+    <div class="page-break"></div>
+
+    <!-- SECCIÓN 4: HISTORIAL, SOBRECARGA, GAMIFICACIÓN Y EXPLICABILIDAD -->
+    <h3>3.5. Historial, Memoria y Calibración Inicial (HU #12)</h3>
+    <p>
+        Cada entrenamiento completado o en progreso queda persistido con fecha, duración y ejercicios. Si el sistema detecta que el usuario no cuenta con sesiones previas en la base de datos, el asistente lo reconoce como novato y genera automáticamente una <strong>Rutina de Calibración Inicial: El Despertar del Guerrero</strong> para evaluar de forma segura su movilidad basal.
+    </p>
+
+    <h3>3.6. Sobrecarga Progresiva Asistida (HU #13)</h3>
+    <p>
+        El motor de prescripción analiza el esfuerzo percibido (RPE) de la última sesión completada:
+    </p>
+    <ul>
+        <li><strong>Progreso Exitoso (RPE "Muy Fácil"):</strong> Propone un incremento conservador de repeticiones (+1 repetición por serie, equivalente a un <strong>+8% a 10%</strong>, respetando el <strong>tope máximo de seguridad del 10%</strong>). El usuario puede aceptar el reto o solicitar mantener el ritmo.</li>
+        <li><strong>Fatiga o Dificultad Elevada (RPE "Muy Pesada" o incompletitud):</strong> El sistema congela la sobrecarga o reduce el volumen y amplía los descansos, protegiendo al aventurero contra el sobreentrenamiento.</li>
+    </ul>
+
+    <h3>3.7. Sistema de Gamificación RPG (HU #14)</h3>
+    <p>
+        Basado en el archivo maestro de configuración <code>storage/app/DATASET/open_game_mechanics.json</code> implementado en <code>GamificationRpgService.php</code>:
+    </p>
+    <ul>
+        <li><strong>Fórmula de Puntos de Experiencia (XP):</strong>
+            <br>
+            <code>XP = XP_Base (50) + (Series × 5) + Bonus_Dificultad (5-10) + Bonus_Sobrecarga (15) + Bonus_Misión (30-50)</code>
+        </li>
+        <li><strong>Escalafón de Rangos RPG:</strong>
+            <ol>
+                <li><strong>Recluta de Hierro</strong> (0 a 99 XP)</li>
+                <li><strong>Guerrero de Cobre</strong> (100 a 249 XP)</li>
+                <li><strong>Caballero de Bronce</strong> (250 a 499 XP)</li>
+                <li><strong>Campeón de Plata</strong> (500 a 999 XP)</li>
+                <li><strong>Titán de Hyperion</strong> (1,000+ XP)</li>
+            </ol>
+        </li>
+        <li><strong>Narrativa Inmersiva:</strong> Mensajes épicos personalizados tras cada entrenamiento detallando la subida de rango, XP acumulada, progreso porcentual hacia el próximo nivel y estado de misiones semanales cumplidas.</li>
+    </ul>
+
+    <h3>3.8. Explicabilidad de la Rutina ("Cómo y Por Qué") (HU #15)</h3>
+    <p>
+        Diseñada para generar confianza clínica y deportiva. Al desplegar la rutina o al ser consultado en el chat (<em>"¿Por qué esta rutina?"</em>), Hyperion responde en <strong>lenguaje natural, claro y empático</strong>, explicitando el origen de cada parámetro:
+    </p>
+    <div class="code-block">
+"He diseñado esta rutina tomando en cuenta tus 15 minutos disponibles para entrenar en casa sin equipo. Dado que reportaste sensibilidad en la rodilla, excluimos con estricta prioridad sentadillas profundas o saltos, seleccionando ejercicios suaves de suelo y core para proteger tu articulación. Como en tu sesión anterior tuviste excelente energía, aplicamos una sobrecarga del 8% en las repeticiones para continuar estimulando tu progreso de forma segura."
+    </div>
+
+    <!-- SECCIÓN 5: VERIFICACIÓN Y PRUEBAS -->
+    <h2>4. Verificación de Calidad y Pruebas Automatizadas</h2>
+    <p>
+        Se diseñó una batería exhaustiva de pruebas unitarias y de integración en <code>tests/Feature/HyperionPlayTest.php</code>, ejecutadas mediante el motor oficial de PHPUnit:
+    </p>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 25%;">Método de Prueba</th>
+                <th style="width: 20%;">HU Asociada</th>
+                <th style="width: 15%;">Resultado</th>
+                <th>Aspecto Verificado</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>test_hu05_validacion_metricas</code></td>
+                <td>HU #5 (Métricas)</td>
+                <td><span class="badge badge-success">PASSED</span></td>
+                <td>20 perfiles, 52,040 inferencias, 0 Falsos Positivos, 100% Precisión.</td>
+            </tr>
+            <tr>
+                <td><code>test_hu06_exercisedb_fallback</code></td>
+                <td>HU #6 (API Fallback)</td>
+                <td><span class="badge badge-success">PASSED</span></td>
+                <td>Fallback automático al catálogo RAG local y normalización de esquema.</td>
+            </tr>
+            <tr>
+                <td><code>test_hu07_entrevista_defaults</code></td>
+                <td>HU #7 (Entrevista)</td>
+                <td><span class="badge badge-success">PASSED</span></td>
+                <td>Asignación de defaults conservadores (15 min, sin equipo, sin lesión).</td>
+            </tr>
+            <tr>
+                <td><code>test_hu08_generacion_rutina</code></td>
+                <td>HU #8 (Rutina)</td>
+                <td><span class="badge badge-success">PASSED</span></td>
+                <td>Estructura completa de ejercicios, series, repeticiones y descansos.</td>
+            </tr>
+            <tr>
+                <td><code>test_hu09_filtro_bajo_impacto</code></td>
+                <td>HU #9 (Bajo Impacto)</td>
+                <td><span class="badge badge-success">PASSED</span></td>
+                <td>Filtro estricto por grasa > 25% o edad > 45 + indicaciones posturales.</td>
+            </tr>
+            <tr>
+                <td><code>test_hu10_rutina_rapida_15_min</code></td>
+                <td>HU #10 (15 min)</td>
+                <td><span class="badge badge-success">PASSED</span></td>
+                <td>Tope de tiempo &le; 15 min y cálculo de XP proporcional.</td>
+            </tr>
+            <tr>
+                <td><code>test_hu11_rutina_segura_lesion</code></td>
+                <td>HU #11 (Rehabilitación)</td>
+                <td><span class="badge badge-success">PASSED</span></td>
+                <td>Exclusión de articulación lesionada y despliegue de aviso médico legal.</td>
+            </tr>
+            <tr>
+                <td><code>test_hu12_historial_y_calibracion</code></td>
+                <td>HU #12 (Historial)</td>
+                <td><span class="badge badge-success">PASSED</span></td>
+                <td>Persistencia en base de datos y rutina de calibración para novatos.</td>
+            </tr>
+            <tr>
+                <td><code>test_hu13_sobrecarga_progresiva</code></td>
+                <td>HU #13 (Sobrecarga)</td>
+                <td><span class="badge badge-success">PASSED</span></td>
+                <td>Tope máximo de seguridad del 10% y atenuación por fatiga previa.</td>
+            </tr>
+            <tr>
+                <td><code>test_hu14_gamificacion_rpg</code></td>
+                <td>HU #14 (RPG)</td>
+                <td><span class="badge badge-success">PASSED</span></td>
+                <td>Cálculo de XP, ascenso a Guerrero de Cobre y actualización de misiones.</td>
+            </tr>
+            <tr>
+                <td><code>test_hu15_explicabilidad_natural</code></td>
+                <td>HU #15 (Explicabilidad)</td>
+                <td><span class="badge badge-success">PASSED</span></td>
+                <td>Texto empático y comprensible sin mostrar código técnico crudo.</td>
+            </tr>
+            <tr>
+                <td><code>test_http_rutas_hyperion</code></td>
+                <td>Rutas HTTP & MVC</td>
+                <td><span class="badge badge-success">PASSED</span></td>
+                <td>Compatibilidad total con <code>/limpiar-dataset</code> y vista <code>/hyperion</code>.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="alert-box alert-info">
+        <strong>Resultado Global de Pruebas:</strong> 12 pruebas ejecutadas, 63 aserciones validadas, <strong>100% de éxito (0 errores, 0 fallos)</strong>.
+    </div>
+
+    <!-- SECCIÓN 6: GUÍA DE OPERACIÓN -->
+    <h2>5. Guía de Puesta en Marcha y Operación</h2>
+    <p>Para levantar el servidor local y experimentar el asistente interactivo:</p>
+    <div class="code-block">
+# 1. Iniciar servidor con PHP 8.3
+& "C:\Users\santi\AppData\Local\Microsoft\WinGet\Packages\PHP.PHP.8.3_Microsoft.Winget.Source_8wekyb3d8bbwe\php.exe" artisan serve
+
+# 2. Acceder al Chatbot & Dashboard RPG en el navegador:
+http://127.0.0.1:8000/hyperion
+
+# 3. Acceder al endpoint original de DatasetController (HU #1):
+http://127.0.0.1:8000/limpiar-dataset
+
+# 4. Re-ejecutar pruebas automatizadas de PHPUnit:
+& "C:\Users\santi\AppData\Local\Microsoft\WinGet\Packages\PHP.PHP.8.3_Microsoft.Winget.Source_8wekyb3d8bbwe\php.exe" vendor/phpunit/phpunit/phpunit --filter=HyperionPlayTest
+    </div>
+
+</body>
+</html>

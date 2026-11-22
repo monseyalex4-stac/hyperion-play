@@ -1,0 +1,41 @@
+{
+  "reglas_seguridad": {
+    "edad_limite_impacto_bajo": 45,
+    "grasa_limite_impacto_bajo": 25.0,
+    "accion_edad_grasa": "restringir_a_bajo_impacto"
+  },
+  "reglas_lesiones": {
+    "articulaciones_monitoreadas": [
+      "rodilla",
+      "espalda_baja",
+      "hombro",
+      "muñeca"
+    ],
+    "accion_lesion": "exclusion_estricta"
+  },
+  "reglas_entorno": {
+    "compatibilidad": {
+      "casa_sin_equipo": [
+        "casa_sin_equipo"
+      ],
+      "casa_basico": [
+        "casa_sin_equipo",
+        "casa_basico"
+      ],
+      "gimnasio": [
+        "casa_sin_equipo",
+        "casa_basico",
+        "gimnasio"
+      ]
+    }
+  },
+  "reglas_tiempo": {
+    "tiempo_default_seg": 900,
+    "tolerancia_margen_seg": 60,
+    "series_promedio": 3
+  },
+  "gamificacion_xp": {
+    "base_completitud": 50,
+    "bonus_por_serie": 5
+  }
+}
