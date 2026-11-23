@@ -305,28 +305,29 @@
 
                         <!-- Acciones de Finalización (HU #12, #13, #14) -->
                         <div class="pt-4 border-t border-slate-800 space-y-3">
-                            <div class="text-xs font-semibold text-slate-300">Registrar Esfuerzo Percibido (RPE):</div>
-                            <div class="grid grid-cols-3 gap-2">
-                                <label class="cursor-pointer text-center p-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs">
-                                    <input type="radio" name="dificultad" value="muy_facil" class="hidden" checked>
-                                    <span class="block font-medium text-emerald-400">Muy Fácil</span>
-                                    <span class="text-[10px] text-slate-400">+Sobrecarga</span>
-                                </label>
-                                <label class="cursor-pointer text-center p-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs">
-                                    <input type="radio" name="dificultad" value="adecuada" class="hidden">
-                                    <span class="block font-medium text-amber-400">Adecuada</span>
-                                    <span class="text-[10px] text-slate-400">Mantener</span>
-                                </label>
-                                <label class="cursor-pointer text-center p-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs">
-                                    <input type="radio" name="dificultad" value="muy_pesada" class="hidden">
-                                    <span class="block font-medium text-rose-400">Muy Pesada</span>
-                                    <span class="text-[10px] text-slate-400">Atenuar</span>
-                                </label>
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-semibold text-slate-300">Registrar Esfuerzo Percibido (RPE):</span>
+                                <span id="rpe-badge-seleccion" class="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-medium">Adecuada seleccionada</span>
                             </div>
 
-                            <button onclick="completarRutina()" class="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-sm shadow-lg shadow-emerald-900/30 transition flex items-center justify-center space-x-2">
-                                <i class="fa-solid fa-check-circle"></i>
-                                <span>Completar Rutina y Recoger XP</span>
+                            <div class="grid grid-cols-3 gap-2">
+                                <button type="button" id="btn-rpe-muy_facil" onclick="seleccionarDificultad('muy_facil')" class="rpe-btn text-center p-2.5 rounded-xl border transition-all text-xs flex flex-col items-center justify-center bg-slate-900 border-slate-800 hover:border-emerald-500/50">
+                                    <span class="block font-bold text-emerald-400">Muy Fácil</span>
+                                    <span class="text-[10px] text-slate-400">+Sobrecarga</span>
+                                </button>
+                                <button type="button" id="btn-rpe-adecuada" onclick="seleccionarDificultad('adecuada')" class="rpe-btn text-center p-2.5 rounded-xl border transition-all text-xs flex flex-col items-center justify-center bg-amber-500/20 border-amber-500 ring-1 ring-amber-500 shadow-sm shadow-amber-500/20">
+                                    <span class="block font-bold text-amber-300">Adecuada</span>
+                                    <span class="text-[10px] text-amber-200/70">Mantener</span>
+                                </button>
+                                <button type="button" id="btn-rpe-muy_pesada" onclick="seleccionarDificultad('muy_pesada')" class="rpe-btn text-center p-2.5 rounded-xl border transition-all text-xs flex flex-col items-center justify-center bg-slate-900 border-slate-800 hover:border-rose-500/50">
+                                    <span class="block font-bold text-rose-400">Muy Pesada</span>
+                                    <span class="text-[10px] text-slate-400">Atenuar</span>
+                                </button>
+                            </div>
+
+                            <button id="btn-completar-rutina" onclick="completarRutina()" class="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-sm shadow-lg shadow-emerald-900/30 transition flex items-center justify-center space-x-2">
+                                <i id="btn-completar-icon" class="fa-solid fa-check-circle"></i>
+                                <span id="btn-completar-texto">Completar Rutina (Adecuada) y Recoger XP</span>
                             </button>
                         </div>
 
@@ -653,11 +654,60 @@
             });
         }
 
+        let dificultadSeleccionada = 'adecuada';
+
+        // Selección interactiva de Esfuerzo Percibido (RPE)
+        function seleccionarDificultad(valor) {
+            dificultadSeleccionada = valor;
+
+            const btnFacil = document.getElementById('btn-rpe-muy_facil');
+            const btnAdecuada = document.getElementById('btn-rpe-adecuada');
+            const btnPesada = document.getElementById('btn-rpe-muy_pesada');
+            const badge = document.getElementById('rpe-badge-seleccion');
+            const btnTexto = document.getElementById('btn-completar-texto');
+
+            const baseInactive = "rpe-btn text-center p-2.5 rounded-xl border transition-all text-xs flex flex-col items-center justify-center bg-slate-900 border-slate-800 text-slate-400";
+
+            if (btnFacil) btnFacil.className = baseInactive + " hover:border-emerald-500/50";
+            if (btnAdecuada) btnAdecuada.className = baseInactive + " hover:border-amber-500/50";
+            if (btnPesada) btnPesada.className = baseInactive + " hover:border-rose-500/50";
+
+            if (valor === 'muy_facil' && btnFacil) {
+                btnFacil.className = "rpe-btn text-center p-2.5 rounded-xl border transition-all text-xs flex flex-col items-center justify-center bg-emerald-500/20 border-emerald-500 ring-1 ring-emerald-500 shadow-sm shadow-emerald-500/20";
+                if (badge) {
+                    badge.innerText = "Muy Fácil (+Sobrecarga)";
+                    badge.className = "text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-medium";
+                }
+                if (btnTexto) btnTexto.innerText = "Completar Rutina (Muy Fácil) y Recoger XP";
+            } else if (valor === 'adecuada' && btnAdecuada) {
+                btnAdecuada.className = "rpe-btn text-center p-2.5 rounded-xl border transition-all text-xs flex flex-col items-center justify-center bg-amber-500/20 border-amber-500 ring-1 ring-amber-500 shadow-sm shadow-amber-500/20";
+                if (badge) {
+                    badge.innerText = "Adecuada (Mantener)";
+                    badge.className = "text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-medium";
+                }
+                if (btnTexto) btnTexto.innerText = "Completar Rutina (Adecuada) y Recoger XP";
+            } else if (valor === 'muy_pesada' && btnPesada) {
+                btnPesada.className = "rpe-btn text-center p-2.5 rounded-xl border transition-all text-xs flex flex-col items-center justify-center bg-rose-500/20 border-rose-500 ring-1 ring-rose-500 shadow-sm shadow-rose-500/20";
+                if (badge) {
+                    badge.innerText = "Muy Pesada (Atenuar)";
+                    badge.className = "text-[10px] px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 font-medium";
+                }
+                if (btnTexto) btnTexto.innerText = "Completar Rutina (Muy Pesada) y Recoger XP";
+            }
+        }
+
         // Completar rutina activa y sumar XP
-        async function completarRutina() {
-            const radioDificultad = document.querySelector('input[name="dificultad"]:checked');
-            const dificultad = radioDificultad ? radioDificultad.value : 'adecuada';
+        async function completarRutina(dificultadDirecta = null) {
+            const dificultad = dificultadDirecta || dificultadSeleccionada || 'adecuada';
             const fatiga = (dificultad === 'muy_pesada');
+
+            const btn = document.getElementById('btn-completar-rutina');
+            const icon = document.getElementById('btn-completar-icon');
+            const texto = document.getElementById('btn-completar-texto');
+
+            if (btn) btn.disabled = true;
+            if (icon) icon.className = 'fa-solid fa-spinner fa-spin';
+            if (texto) texto.innerText = 'Registrando en Crónica...';
 
             try {
                 const response = await fetch('/api/workout/complete', {
@@ -692,12 +742,17 @@
                     document.getElementById('rutina-placeholder').classList.remove('hidden');
                     document.getElementById('rutina-contenido').classList.add('hidden');
                     rutinaActual = null;
+                    seleccionarDificultad('adecuada');
                 } else {
                     alert(data.mensaje || 'Error al completar rutina.');
                 }
             } catch (e) {
                 console.error('Error al completar rutina:', e);
                 alert('Ocurrió un problema de comunicación al registrar la rutina.');
+            } finally {
+                if (btn) btn.disabled = false;
+                if (icon) icon.className = 'fa-solid fa-check-circle';
+                if (texto) texto.innerText = 'Completar Rutina y Recoger XP';
             }
         }
 
