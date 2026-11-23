@@ -44,4 +44,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(UserQuest::class);
     }
+
+    public function chatMessages(): HasMany
+    {
+        return $this->hasMany(ChatMessage::class)->orderBy('id', 'asc');
+    }
 }

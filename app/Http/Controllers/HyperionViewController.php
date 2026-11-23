@@ -60,13 +60,42 @@ class HyperionViewController extends Controller
         $allUsers = User::orderBy('id', 'asc')->get();
         $user->load('quests');
         $nivelInfo = $this->rpgService->obtenerInfoNivelPorXp($user->current_xp ?? 0);
-        $sesiones = $user->workoutSessions()->latest()->take(5)->get();
+        $sesiones = $user->workoutSessions()->latest()->take(6)->get();
+
+        // Cargar historial de chat persistente del usuario
+        $chatMessages = $user->chatMessages()->latest('id')->take(40)->get()->reverse()->values();
+
+        // Recuperar última rutina generada en el contexto para restaurar en panel
+        $ultimaRutina = null;
+        foreach ($chatMessages->reverse() as $msg) {
+            if (!empty($msg->routine_data)) {
+                $ultimaRutina = $msg->routine_data;
+                break;
+            }
+        }
+
+        if (!$ultimaRutina) {
+            $sesionEnProgreso = $user->workoutSessions()->where('status', 'en_progreso')->latest()->first();
+            if ($sesionEnProgreso && !empty($sesionEnProgreso->exercises_data)) {
+                $ultimaRutina = [
+                    'session_id'       => $sesionEnProgreso->id,
+                    'titulo'           => $sesionEnProgreso->title,
+                    'duracion_minutos' => $sesionEnProgreso->total_duration_minutes,
+                    'arquetipo'        => $sesionEnProgreso->archetype,
+                    'xp_estimada'      => $sesionEnProgreso->xp_earned ?: 35,
+                    'ejercicios'       => $sesionEnProgreso->exercises_data,
+                    'aviso_medico'     => $sesionEnProgreso->medical_disclaimer_displayed ? '⚠️ Precaución médica aplicada.' : null,
+                ];
+            }
+        }
 
         return view('hyperion', [
-            'user' => $user,
-            'allUsers' => $allUsers,
-            'nivelInfo' => $nivelInfo,
-            'sesiones' => $sesiones,
+            'user'         => $user,
+            'allUsers'     => $allUsers,
+            'nivelInfo'    => $nivelInfo,
+            'sesiones'     => $sesiones,
+            'chatMessages' => $chatMessages,
+            'ultimaRutina' => $ultimaRutina,
         ]);
     }
 }

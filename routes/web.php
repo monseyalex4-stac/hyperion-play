@@ -20,6 +20,7 @@ Route::get('/hyperion', [HyperionViewController::class, 'index'])->name('hyperio
 // Endpoints de API para Hyperion Play
 Route::prefix('api')->group(function () {
     Route::post('/chat/message', [ChatbotController::class, 'sendMessage']);
+    Route::post('/chat/reset', [ChatbotController::class, 'resetChat']);
     Route::get('/user/profile', [ChatbotController::class, 'getProfile']);
     Route::post('/user/create', [ChatbotController::class, 'createUser']);
     Route::post('/user/update', [ChatbotController::class, 'updateUser']);

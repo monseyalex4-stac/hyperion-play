@@ -265,4 +265,69 @@ class HyperionPlayTest extends TestCase
         $respMetrics->assertJsonPath('status', 'success');
         $respMetrics->assertJsonPath('matriz.FP', 0);
     }
+
+    /**
+     * Test: Modificar datos de usuario (cambio de entorno, lesiones, biometría).
+     */
+    public function test_modificar_usuario_entorno_y_datos_biometricos(): void
+    {
+        $resp = $this->postJson('/api/user/update', [
+            'user_id' => $this->user->id,
+            'name' => 'Santiago Titán',
+            'age' => 26,
+            'environment' => 'gimnasio',
+            'injury' => 'hombro',
+            'weight_kg' => 80.0,
+            'height_cm' => 178.0,
+            'body_fat_pct' => 15.2,
+        ]);
+
+        $resp->assertStatus(200);
+        $resp->assertJsonPath('status', 'success');
+
+        $this->user->refresh();
+        $this->assertEquals('Santiago Titán', $this->user->name);
+        $this->assertEquals('gimnasio', $this->user->environment);
+        $this->assertEquals('hombro', $this->user->injury);
+        $this->assertEquals(80.0, $this->user->weight_kg);
+        $this->assertEquals(15.2, $this->user->body_fat_pct);
+    }
+
+    /**
+     * Test: Historial de mensajes de chat persistente e independiente por usuario.
+     */
+    public function test_persistencia_historial_chat_e_independencia_por_usuario(): void
+    {
+        $user2 = User::create([
+            'name' => 'Valeria',
+            'email' => 'valeria@test.com',
+            'password' => bcrypt('password'),
+            'environment' => 'casa_sin_equipo',
+        ]);
+
+        // Enviar mensaje con usuario 1
+        $this->postJson('/api/chat/message', [
+            'user_id' => $this->user->id,
+            'message' => 'Hola Hyperion, soy Santiago',
+        ]);
+
+        $this->assertCount(2, $this->user->chatMessages); // 1 user + 1 hyperion
+        $this->assertCount(0, $user2->chatMessages);
+
+        // Enviar mensaje con usuario 2
+        $this->postJson('/api/chat/message', [
+            'user_id' => $user2->id,
+            'message' => 'Hola Hyperion, soy Valeria',
+        ]);
+
+        $this->assertCount(2, $user2->fresh()->chatMessages);
+
+        // Reiniciar chat de usuario 1
+        $this->postJson('/api/chat/reset', [
+            'user_id' => $this->user->id,
+        ]);
+
+        $this->assertCount(0, $this->user->fresh()->chatMessages);
+        $this->assertCount(2, $user2->fresh()->chatMessages); // El historial de usuario 2 permanece intacto
+    }
 }

@@ -105,7 +105,7 @@
                         <div class="flex items-center justify-between gap-2 mb-1">
                             <span class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Aventurero Activo</span>
                             <div class="flex items-center gap-1">
-                                <button onclick="editarNombreUsuario()" title="Renombrar este perfil" class="text-[10px] px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-lg transition font-medium flex items-center gap-1">
+                                <button onclick="abrirModalEditarUsuario()" title="Modificar perfil de este aventurero (entorno, lesiones, peso, etc.)" class="text-[10px] px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-lg transition font-medium flex items-center gap-1">
                                     <i class="fa-solid fa-pen text-[9px]"></i>
                                     <span>Editar</span>
                                 </button>
@@ -188,22 +188,42 @@
 
                 <!-- Chat Stream -->
                 <div id="chat-messages" class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
-                    
-                    <!-- Mensaje Inicial de Hyperion -->
-                    <div class="chat-bubble-hyperion rounded-xl p-4 max-w-[92%] sm:max-w-[85%]">
-                        <div class="flex items-center space-x-2 mb-1.5 text-xs text-amber-400 font-semibold">
-                            <i class="fa-solid fa-shield-halved"></i>
-                            <span>HYPERION</span>
+                    @if(empty($chatMessages) || $chatMessages->isEmpty())
+                        <!-- Mensaje Inicial de Hyperion -->
+                        <div class="chat-bubble-hyperion rounded-xl p-4 max-w-[92%] sm:max-w-[85%]">
+                            <div class="flex items-center space-x-2 mb-1.5 text-xs text-amber-400 font-semibold">
+                                <i class="fa-solid fa-shield-halved"></i>
+                                <span>HYPERION</span>
+                            </div>
+                            <div class="text-sm leading-relaxed text-slate-200">
+                                ¡Saludos, noble aventurero <strong>{{ $user->name }}</strong>! Soy <strong>HYPERION</strong>, tu Titán mentor en la forja corporal.
+                                <br><br>
+                                Combinando los datos biométricos de tu evaluación, nuestro motor clínico RAG y las leyes de sobrecarga progresiva, estoy listo para guiar tu entrenamiento.
+                                <br><br>
+                                ¿Listo para la batalla de hoy? Puedes pulsar uno de los atajos inferiores o escribirme directamente lo que necesitas.
+                            </div>
                         </div>
-                        <div class="text-sm leading-relaxed text-slate-200">
-                            ¡Saludos, noble aventurero <strong>{{ $user->name }}</strong>! Soy <strong>HYPERION</strong>, tu Titán mentor en la forja corporal.
-                            <br><br>
-                            Combinando los datos biométricos de tu evaluación, nuestro motor clínico RAG y las leyes de sobrecarga progresiva, estoy listo para guiar tu entrenamiento.
-                            <br><br>
-                            ¿Listo para la batalla de hoy? Puedes pulsar uno de los atajos inferiores o escribirme directamente lo que necesitas.
-                        </div>
-                    </div>
-
+                    @else
+                        @foreach($chatMessages as $msg)
+                            @if($msg->sender === 'hyperion')
+                                <div class="chat-bubble-hyperion rounded-xl p-4 max-w-[92%] sm:max-w-[85%]">
+                                    <div class="flex items-center space-x-2 mb-1.5 text-xs text-amber-400 font-semibold">
+                                        <i class="fa-solid fa-shield-halved"></i>
+                                        <span>HYPERION</span>
+                                    </div>
+                                    <div class="text-sm leading-relaxed text-slate-200 whitespace-pre-line">{{ $msg->message }}</div>
+                                </div>
+                            @else
+                                <div class="chat-bubble-user rounded-xl p-4 max-w-[92%] sm:max-w-[85%] ml-auto">
+                                    <div class="flex items-center justify-end space-x-2 mb-1.5 text-xs text-sky-400 font-semibold">
+                                        <span>Tú (Aventurero)</span>
+                                        <i class="fa-solid fa-user"></i>
+                                    </div>
+                                    <div class="text-sm leading-relaxed text-slate-200 whitespace-pre-line">{{ $msg->message }}</div>
+                                </div>
+                            @endif
+                        @endforeach
+                    @endif
                 </div>
 
                 <!-- Chips de Atajos Rápidos -->
@@ -367,6 +387,56 @@
                     </div>
                 </div>
 
+                <!-- Card de Historial de Batallas del Aventurero (HU #12) -->
+                <div class="rpg-card rounded-2xl p-5">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-3">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-clock-rotate-left text-amber-400"></i>
+                            <h2 class="font-bold text-slate-100 text-sm uppercase tracking-wide">Historial de Entrenamientos</h2>
+                        </div>
+                        <span class="text-[10px] text-slate-400 font-medium">{{ count($sesiones) }} registro(s)</span>
+                    </div>
+                    
+                    <div id="sesiones-container" class="space-y-2 max-h-56 overflow-y-auto pr-1">
+                        @forelse($sesiones as $s)
+                        <div class="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-xs flex items-center justify-between">
+                            <div class="space-y-0.5">
+                                <div class="font-semibold text-slate-200 flex items-center gap-1.5">
+                                    <span>{{ $s->title }}</span>
+                                    @if($s->status === 'completada')
+                                        <span class="text-[9px] px-1.5 py-0.2 bg-emerald-500/20 text-emerald-400 rounded font-bold">Completada</span>
+                                    @else
+                                        <span class="text-[9px] px-1.5 py-0.2 bg-amber-500/20 text-amber-300 rounded font-bold">En Progreso</span>
+                                    @endif
+                                </div>
+                                <div class="text-[10px] text-slate-400 flex items-center gap-1.5">
+                                    <span><i class="fa-regular fa-clock mr-1 text-[9px]"></i>{{ $s->total_duration_minutes }} min</span>
+                                    <span>•</span>
+                                    <span class="capitalize">{{ str_replace('_', ' ', $s->target_environment) }}</span>
+                                    @if($s->difficulty_rating)
+                                        <span>•</span>
+                                        <span class="text-amber-400 font-medium">{{ ucfirst(str_replace('_', ' ', $s->difficulty_rating)) }}</span>
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="text-right pl-2 shrink-0">
+                                <span class="px-2 py-0.5 rounded font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[11px]">
+                                    +{{ $s->xp_earned ?: 35 }} XP
+                                </span>
+                                <div class="text-[9px] text-slate-500 mt-0.5">
+                                    {{ $s->created_at ? $s->created_at->format('d/m H:i') : 'Reciente' }}
+                                </div>
+                            </div>
+                        </div>
+                        @empty
+                        <div class="text-center py-4 text-xs text-slate-500">
+                            <i class="fa-solid fa-shield-halved text-slate-600 text-base mb-1 block"></i>
+                            Sin entrenamientos aún. ¡Completa tu primera rutina para guardar tu progreso!
+                        </div>
+                        @endforelse
+                    </div>
+                </div>
+
             </div>
 
         </div>
@@ -469,6 +539,120 @@
                     </button>
                     <button type="submit" class="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold shadow-lg shadow-amber-500/20">
                         Comenzar Aventura
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Editar Aventurero -->
+    <div id="modal-editar-usuario" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="rpg-card rounded-2xl max-w-md w-full p-6 flex flex-col space-y-4 border border-slate-800">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-user-pen text-amber-400"></i>
+                    <h3 class="font-bold text-white text-base">Modificar Perfil de Aventurero</h3>
+                </div>
+                <button onclick="cerrarModalEditarUsuario()" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="form-editar-usuario" onsubmit="guardarEdicionUsuario(event)" class="space-y-3.5 text-xs">
+                <div>
+                    <label class="block text-slate-300 font-medium mb-1">Nombre o Alias del Aventurero *</label>
+                    <input type="text" id="edit-nombre" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">Edad</label>
+                        <input type="number" id="edit-edad" min="12" max="100" oninput="calcularGrasaCorporalEdicion()" onchange="calcularGrasaCorporalEdicion()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">Género</label>
+                        <select id="edit-genero" onchange="calcularGrasaCorporalEdicion()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-amber-500">
+                            <option value="no_disponible">Prefiero no decir</option>
+                            <option value="femenino">Femenino</option>
+                            <option value="masculino">Masculino</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">Peso (kg)</label>
+                        <input type="number" step="0.5" id="edit-peso" oninput="calcularGrasaCorporalEdicion()" onchange="calcularGrasaCorporalEdicion()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-white focus:outline-none focus:ring-1 focus:ring-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">Altura (cm)</label>
+                        <input type="number" id="edit-altura" oninput="calcularGrasaCorporalEdicion()" onchange="calcularGrasaCorporalEdicion()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-white focus:outline-none focus:ring-1 focus:ring-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1 flex items-center justify-between">
+                            <span>% Grasa</span>
+                            <span class="text-[9px] text-amber-400 font-normal">Auto</span>
+                        </label>
+                        <input type="number" step="0.1" id="edit-grasa" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-white focus:outline-none focus:ring-1 focus:ring-amber-500">
+                    </div>
+                </div>
+                <p class="text-[10px] text-slate-400 -mt-1 flex items-center gap-1.5">
+                    <i class="fa-solid fa-wand-magic-sparkles text-amber-400 text-xs"></i>
+                    <span>Cálculo automático con fórmula Deurenberg según peso, altura y género.</span>
+                </p>
+
+                <!-- Entorno de Entrenamiento -->
+                <div>
+                    <label class="block text-slate-300 font-medium mb-1">Entorno de Entrenamiento Preferido</label>
+                    <select id="edit-entorno" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-amber-500">
+                        <option value="casa_sin_equipo">Casa sin equipo (Calistenia / Peso corporal)</option>
+                        <option value="casa_basico">Casa con equipo ligero (Mancuernas / Bandas)</option>
+                        <option value="gimnasio">Gimnasio comercial completo (Máquinas y Pesas)</option>
+                    </select>
+                </div>
+
+                <!-- Lesión o Limitación Articular -->
+                <div>
+                    <label class="block text-slate-300 font-medium mb-1">Lesión o Limitación Articular</label>
+                    <select id="edit-lesion" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-amber-500">
+                        <option value="ninguna">Sin lesiones activas (Total movilidad)</option>
+                        <option value="rodilla">Rodilla (Bajo impacto, sin sentadillas profundas)</option>
+                        <option value="espalda_baja">Espalda baja / Lumbar (Evitar sobrecarga axial)</option>
+                        <option value="hombro">Hombro (Evitar press militar pesado / trasnuca)</option>
+                        <option value="muñeca">Muñeca (Evitar apoyo directo en flexiones)</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">Tiempo habitual</label>
+                        <select id="edit-tiempo" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-amber-500">
+                            <option value="10">10 minutos (Micro-rutina)</option>
+                            <option value="15">15 minutos (Expreso)</option>
+                            <option value="30">30 minutos (Estándar)</option>
+                            <option value="45">45 minutos (Completo)</option>
+                            <option value="60">60 minutos (Avanzado)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">Objetivo Físico</label>
+                        <select id="edit-objetivo" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-amber-500">
+                            <option value="resistencia">Resistencia</option>
+                            <option value="hipertrofia">Ganancia muscular</option>
+                            <option value="perdida_grasa">Pérdida de grasa</option>
+                            <option value="fuerza">Fuerza</option>
+                            <option value="salud_general">Salud general</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="pt-3 border-t border-slate-800 flex justify-end gap-2">
+                    <button type="button" onclick="cerrarModalEditarUsuario()" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold shadow-lg shadow-amber-500/20 flex items-center gap-1.5">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span>Guardar Cambios</span>
                     </button>
                 </div>
             </form>
@@ -903,21 +1087,21 @@
             document.getElementById('modal-metricas').classList.add('hidden');
         }
 
-        function resetearChat() {
-            const container = document.getElementById('chat-messages');
-            container.innerHTML = `
-                <div class="chat-bubble-hyperion rounded-xl p-4 max-w-[92%] sm:max-w-[85%]">
-                    <div class="flex items-center space-x-2 mb-1.5 text-xs text-amber-400 font-semibold">
-                        <i class="fa-solid fa-shield-halved"></i>
-                        <span>HYPERION</span>
-                    </div>
-                    <div class="text-sm leading-relaxed text-slate-200">
-                        Sesión reiniciada. ¿De cuántos minutos dispones hoy para tu entrenamiento y en qué entorno te encuentras?
-                    </div>
-                </div>
-            `;
-            document.getElementById('rutina-placeholder').classList.remove('hidden');
-            document.getElementById('rutina-contenido').classList.add('hidden');
+        async function resetearChat() {
+            if (!confirm('¿Deseas reiniciar la conversación de Hyperion para este aventurero? Tu progreso de nivel y entrenamientos guardados se mantendrán.')) return;
+            try {
+                await fetch('/api/chat/reset', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                    body: JSON.stringify({ user_id: activeUserId })
+                });
+            } catch (e) {
+                console.warn('Error al reiniciar chat:', e);
+            }
+            window.location.reload();
         }
 
         // Gestión de persistencia y perfiles de aventurero
@@ -941,9 +1125,66 @@
             window.location.href = '/hyperion?user_id=' + userId;
         }
 
-        async function editarNombreUsuario() {
-            const nuevo = prompt("Escribe tu nombre para personalizar tu perfil:", "{{ $user->name }}");
-            if (!nuevo || !nuevo.trim() || nuevo.trim() === "{{ $user->name }}") return;
+        function abrirModalEditarUsuario() {
+            document.getElementById('edit-nombre').value = @json($user->name);
+            document.getElementById('edit-edad').value = {{ $user->age ?: 25 }};
+            document.getElementById('edit-genero').value = @json($user->gender ?? 'no_disponible');
+            document.getElementById('edit-peso').value = {{ $user->weight_kg ?: 70 }};
+            document.getElementById('edit-altura').value = {{ $user->height_cm ?: 170 }};
+            document.getElementById('edit-grasa').value = {{ $user->body_fat_pct ?: 18 }};
+            document.getElementById('edit-entorno').value = @json($user->environment ?? 'casa_sin_equipo');
+            document.getElementById('edit-lesion').value = @json($user->injury ?? 'ninguna');
+            document.getElementById('edit-tiempo').value = {{ $user->available_time_minutes ?: 15 }};
+            document.getElementById('edit-objetivo').value = @json($user->fitness_goal ?? 'resistencia');
+
+            document.getElementById('modal-editar-usuario').classList.remove('hidden');
+            document.getElementById('edit-nombre').focus();
+        }
+
+        function cerrarModalEditarUsuario() {
+            document.getElementById('modal-editar-usuario').classList.add('hidden');
+        }
+
+        function calcularGrasaCorporalEdicion() {
+            const peso = parseFloat(document.getElementById('edit-peso')?.value) || 0;
+            const alturaCm = parseFloat(document.getElementById('edit-altura')?.value) || 0;
+            const edad = parseInt(document.getElementById('edit-edad')?.value) || 25;
+            const genero = document.getElementById('edit-genero')?.value || 'no_disponible';
+
+            if (peso > 0 && alturaCm > 0) {
+                const alturaM = alturaCm / 100;
+                const imc = peso / (alturaM * alturaM);
+
+                let sexo = 0.5;
+                if (genero === 'masculino') sexo = 1;
+                if (genero === 'femenino') sexo = 0;
+
+                let grasa = (1.20 * imc) + (0.23 * edad) - (10.8 * sexo) - 5.4;
+                grasa = Math.max(5.0, Math.min(50.0, grasa));
+
+                const inputGrasa = document.getElementById('edit-grasa');
+                if (inputGrasa) {
+                    inputGrasa.value = grasa.toFixed(1);
+                }
+            }
+        }
+
+        async function guardarEdicionUsuario(event) {
+            event.preventDefault();
+
+            const payload = {
+                user_id: activeUserId,
+                name: document.getElementById('edit-nombre').value.trim(),
+                age: parseInt(document.getElementById('edit-edad').value) || 25,
+                gender: document.getElementById('edit-genero').value,
+                weight_kg: parseFloat(document.getElementById('edit-peso').value) || 70,
+                height_cm: parseFloat(document.getElementById('edit-altura').value) || 170,
+                body_fat_pct: parseFloat(document.getElementById('edit-grasa').value) || 18,
+                environment: document.getElementById('edit-entorno').value,
+                injury: document.getElementById('edit-lesion').value,
+                available_time_minutes: parseInt(document.getElementById('edit-tiempo').value) || 15,
+                fitness_goal: document.getElementById('edit-objetivo').value,
+            };
 
             try {
                 const response = await fetch('/api/user/update', {
@@ -952,8 +1193,21 @@
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': csrfToken,
                     },
-                    body: JSON.stringify({ user_id: activeUserId, name: nuevo.trim() })
+                    body: JSON.stringify(payload)
                 });
+
+                const data = await response.json();
+                if (data.status === 'success') {
+                    cerrarModalEditarUsuario();
+                    window.location.reload();
+                } else {
+                    alert(data.mensaje || 'Error al actualizar el aventurero.');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error al conectar con el servidor.');
+            }
+        }
 
                 const data = await response.json();
                 if (data.status === 'success') {
@@ -1037,6 +1291,20 @@
                 alert('Error al conectar con el servidor.');
             }
         }
+
+        // Inicialización de contexto persistente del aventurero
+        document.addEventListener('DOMContentLoaded', () => {
+            const ultimaRutinaInicial = @json($ultimaRutina ?? null);
+            if (ultimaRutinaInicial && typeof mostrarRutinaEnPanel === 'function') {
+                try {
+                    mostrarRutinaEnPanel(ultimaRutinaInicial);
+                } catch (e) {
+                    console.warn('Error al restaurar rutina inicial:', e);
+                }
+            }
+
+            setTimeout(scrollChatToEnd, 150);
+        });
     </script>
 </body>
 </html>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\WorkoutSession;
+use App\Models\ChatMessage;
 use App\Services\ConversationalChatbotService;
 use App\Services\DecisionRulesEngineService;
 use App\Services\ExerciseDbService;
@@ -82,7 +83,24 @@ class ChatbotController extends Controller
         ]);
 
         $user = $this->resolveUser($request);
-        $respuesta = $this->chatbot->procesarMensaje($user, $request->input('message'));
+        $userText = $request->input('message');
+
+        // Persistir mensaje del usuario en su historial
+        ChatMessage::create([
+            'user_id' => $user->id,
+            'sender'  => 'user',
+            'message' => $userText,
+        ]);
+
+        $respuesta = $this->chatbot->procesarMensaje($user, $userText);
+
+        // Persistir respuesta de Hyperion y rutina asociada en su historial
+        ChatMessage::create([
+            'user_id'      => $user->id,
+            'sender'       => 'hyperion',
+            'message'      => $respuesta['texto'] ?? '',
+            'routine_data' => $respuesta['rutina'] ?? null,
+        ]);
 
         $user->refresh();
         $user->load('quests');
@@ -94,6 +112,9 @@ class ChatbotController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'age' => $user->age,
+                'gender' => $user->gender,
+                'weight_kg' => $user->weight_kg,
+                'height_cm' => $user->height_cm,
                 'body_fat_pct' => $user->body_fat_pct,
                 'environment' => $user->environment,
                 'available_time_minutes' => $user->available_time_minutes,
@@ -181,30 +202,61 @@ class ChatbotController extends Controller
     }
 
     /**
-     * Actualiza los datos del usuario activo (ej: cambiar nombre).
+     * Actualiza los datos del usuario activo (nombre, entorno, lesiones, peso, altura, grasa, etc.).
      */
     public function updateUser(Request $request): JsonResponse
     {
         $user = $this->resolveUser($request);
 
         $validated = $request->validate([
-            'name'        => 'nullable|string|max:100',
-            'age'         => 'nullable|integer|min:12|max:100',
-            'environment' => 'nullable|string|in:casa_sin_equipo,casa_basico,gimnasio',
-            'injury'      => 'nullable|string',
+            'name'                   => 'nullable|string|max:100',
+            'age'                    => 'nullable|integer|min:12|max:100',
+            'gender'                 => 'nullable|string',
+            'weight_kg'              => 'nullable|numeric|min:30|max:300',
+            'height_cm'              => 'nullable|numeric|min:100|max:250',
+            'body_fat_pct'           => 'nullable|numeric|min:3|max:60',
+            'environment'            => 'nullable|string|in:casa_sin_equipo,casa_basico,gimnasio',
+            'injury'                 => 'nullable|string',
+            'available_time_minutes' => 'nullable|integer|min:5|max:120',
+            'fitness_goal'           => 'nullable|string',
         ]);
 
         if (!empty($validated['name'])) {
             $user->name = $validated['name'];
         }
         if (!empty($validated['age'])) {
-            $user->age = $validated['age'];
+            $user->age = (int) $validated['age'];
         }
-        if (!empty($validated['environment'])) {
+        if (isset($validated['gender'])) {
+            $user->gender = $validated['gender'];
+        }
+        if (isset($validated['weight_kg'])) {
+            $user->weight_kg = (float) $validated['weight_kg'];
+        }
+        if (isset($validated['height_cm'])) {
+            $user->height_cm = (float) $validated['height_cm'];
+        }
+        if (isset($validated['environment'])) {
             $user->environment = $validated['environment'];
         }
         if (isset($validated['injury'])) {
             $user->injury = $validated['injury'];
+        }
+        if (isset($validated['available_time_minutes'])) {
+            $user->available_time_minutes = (int) $validated['available_time_minutes'];
+        }
+        if (isset($validated['fitness_goal'])) {
+            $user->fitness_goal = $validated['fitness_goal'];
+        }
+
+        // Recalcular grasa corporal si no se especificó y tenemos peso y altura
+        if (isset($validated['body_fat_pct']) && $validated['body_fat_pct'] !== null) {
+            $user->body_fat_pct = (float) $validated['body_fat_pct'];
+        } elseif ($user->weight_kg > 0 && $user->height_cm > 0) {
+            $heightM = $user->height_cm / 100.0;
+            $bmi = $user->weight_kg / ($heightM * $heightM);
+            $sexFactor = ($user->gender === 'masculino') ? 1.0 : (($user->gender === 'femenino') ? 0.0 : 0.5);
+            $user->body_fat_pct = round(max(5.0, min(50.0, (1.20 * $bmi) + (0.23 * ($user->age ?: 25)) - (10.8 * $sexFactor) - 5.4)), 1);
         }
 
         $user->save();
@@ -214,8 +266,22 @@ class ChatbotController extends Controller
 
         return response()->json([
             'status'  => 'success',
-            'mensaje' => 'Perfil actualizado correctamente.',
+            'mensaje' => 'Perfil del aventurero actualizado correctamente.',
             'user'    => $user,
+        ]);
+    }
+
+    /**
+     * Reiniciar el historial de chat del usuario activo.
+     */
+    public function resetChat(Request $request): JsonResponse
+    {
+        $user = $this->resolveUser($request);
+        ChatMessage::where('user_id', $user->id)->delete();
+
+        return response()->json([
+            'status'  => 'success',
+            'mensaje' => 'Historial de conversación reiniciado con éxito.',
         ]);
     }
 
