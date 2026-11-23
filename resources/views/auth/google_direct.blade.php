@@ -200,17 +200,19 @@
             mostrarCargando(`Iniciando sesión como ${name}...`);
 
             try {
+                const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || csrfToken || '{{ csrf_token() }}';
                 const res = await fetch('/auth/google/one-click', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken,
+                        'X-CSRF-TOKEN': token,
+                        'Accept': 'application/json',
                     },
-                    body: JSON.stringify({ email, name, avatar })
+                    body: JSON.stringify({ email, name, avatar, _token: token })
                 });
 
                 const data = await res.json();
-                if (data.status === 'success') {
+                if (data.status === 'success' && data.redirect) {
                     window.location.href = data.redirect;
                 } else {
                     ocultarCargando();
