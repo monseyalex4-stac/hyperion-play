@@ -563,15 +563,25 @@
                     agregarBurbuja('hyperion', data.respuesta.texto);
                     
                     if (data.respuesta.rutina) {
-                        mostrarRutinaEnPanel(data.respuesta.rutina);
+                        try {
+                            mostrarRutinaEnPanel(data.respuesta.rutina);
+                        } catch (panelErr) {
+                            console.warn('Error al mostrar rutina en panel:', panelErr);
+                        }
                     }
 
                     if (data.user) {
-                        actualizarHUD(data.user);
+                        try {
+                            actualizarHUD(data.user);
+                        } catch (hudErr) {
+                            console.warn('Error al actualizar HUD:', hudErr);
+                        }
                     }
+                } else {
+                    agregarBurbuja('hyperion', data.mensaje || 'Hubo un inconveniente al procesar tu solicitud.');
                 }
             } catch (error) {
-                console.error(error);
+                console.error('Error en enviarMensaje:', error);
                 agregarBurbuja('hyperion', 'Lo siento, ha ocurrido un error al conectar con el servidor.');
             }
         }
@@ -645,7 +655,8 @@
 
         // Completar rutina activa y sumar XP
         async function completarRutina() {
-            const dificultad = document.querySelector('input[name="dificultad"]:checked').value;
+            const radioDificultad = document.querySelector('input[name="dificultad"]:checked');
+            const dificultad = radioDificultad ? radioDificultad.value : 'adecuada';
             const fatiga = (dificultad === 'muy_pesada');
 
             try {
@@ -657,6 +668,7 @@
                     },
                     body: JSON.stringify({
                         user_id: activeUserId,
+                        session_id: (rutinaActual && rutinaActual.sesion_id) ? rutinaActual.sesion_id : null,
                         difficulty_rating: dificultad,
                         fatigue_reported: fatiga,
                         progressive_overload_accepted: (dificultad === 'muy_facil')
@@ -664,43 +676,78 @@
                 });
 
                 const data = await response.json();
-                if (data.status === 'success') {
-                    agregarBurbuja('hyperion', data.rpg.mensaje_narrativo);
-                    actualizarHUD(data.user);
+                if (data.status === 'success' || data.status === 'info') {
+                    if (data.rpg && data.rpg.mensaje_narrativo) {
+                        agregarBurbuja('hyperion', data.rpg.mensaje_narrativo);
+                    } else if (data.mensaje) {
+                        agregarBurbuja('hyperion', data.mensaje);
+                    }
+                    if (data.user) {
+                        try {
+                            actualizarHUD(data.user);
+                        } catch (hudErr) {
+                            console.warn('Error al actualizar HUD:', hudErr);
+                        }
+                    }
                     document.getElementById('rutina-placeholder').classList.remove('hidden');
                     document.getElementById('rutina-contenido').classList.add('hidden');
+                    rutinaActual = null;
                 } else {
                     alert(data.mensaje || 'Error al completar rutina.');
                 }
             } catch (e) {
-                console.error(e);
+                console.error('Error al completar rutina:', e);
+                alert('Ocurrió un problema de comunicación al registrar la rutina.');
             }
         }
 
         // Actualizar barra de XP, nivel y datos del HUD
         function actualizarHUD(user) {
-            document.getElementById('hud-nombre').innerText = user.name;
-            document.getElementById('hud-titulo').innerHTML = `<i class="fa-solid fa-crown text-[10px]"></i> <span>${user.rpg_title}</span>`;
-            document.getElementById('hud-nivel-icon').innerText = user.current_level;
+            if (!user) return;
+            const elNombre = document.getElementById('hud-nombre');
+            if (elNombre) elNombre.innerText = user.name;
+
+            const elSelector = document.getElementById('selector-aventurero');
+            if (elSelector && user.id) {
+                const opt = elSelector.querySelector(`option[value="${user.id}"]`);
+                if (opt) opt.innerText = `${user.name} (Lv ${user.current_level})`;
+            }
+
+            const elTitulo = document.getElementById('hud-titulo');
+            if (elTitulo) elTitulo.innerHTML = `<i class="fa-solid fa-crown text-[10px]"></i> <span>${user.rpg_title || 'Recluta'}</span>`;
+
+            const elNivel = document.getElementById('hud-nivel-icon');
+            if (elNivel) elNivel.innerText = user.current_level;
 
             // Recalcular nivel y barra
             fetch('/api/user/profile?user_id=' + activeUserId)
                 .then(r => r.json())
                 .then(data => {
-                    if (data.status === 'success') {
+                    if (data && data.status === 'success') {
                         const n = data.nivel_info;
                         const u = data.user;
-                        document.getElementById('hud-xp-label').innerText = `${u.current_xp} XP / ${n.xp_siguiente} XP`;
+                        const elXpLabel = document.getElementById('hud-xp-label');
+                        if (elXpLabel) elXpLabel.innerText = `${u.current_xp} XP / ${n.xp_siguiente} XP`;
+
                         const rango = Math.max(1, n.xp_siguiente - n.xp_actual_min);
                         const pct = Math.min(100, Math.round(((u.current_xp - n.xp_actual_min) / rango) * 100));
-                        document.getElementById('hud-xp-bar').style.width = pct + '%';
-                        document.getElementById('hud-xp-faltante').innerText = `Faltan ${Math.max(0, n.xp_siguiente - u.current_xp)} XP`;
+                        const elXpBar = document.getElementById('hud-xp-bar');
+                        if (elXpBar) elXpBar.style.width = pct + '%';
 
-                        document.getElementById('hud-biometria').innerText = `${u.body_fat_pct}% | ${u.age} años`;
-                        document.getElementById('hud-entorno').innerText = u.environment.replace('_', ' ');
-                        document.getElementById('hud-lesion').innerText = u.injury;
+                        const elXpFaltante = document.getElementById('hud-xp-faltante');
+                        if (elXpFaltante) elXpFaltante.innerText = `Faltan ${Math.max(0, n.xp_siguiente - u.current_xp)} XP`;
+
+                        const elBiometria = document.getElementById('hud-biometria');
+                        if (elBiometria) elBiometria.innerText = `${u.body_fat_pct}% | ${u.age} años`;
+
+                        const elEntorno = document.getElementById('hud-entorno');
+                        if (elEntorno) elEntorno.innerText = (u.environment || '').replace('_', ' ');
+
+                        const elLesion = document.getElementById('hud-lesion');
+                        if (elLesion) elLesion.innerText = u.injury;
                     }
-                });
+                })
+                .catch(err => console.warn('Error al actualizar HUD:', err));
         }
 
         // Abrir y cargar modal de auditoría HU #5

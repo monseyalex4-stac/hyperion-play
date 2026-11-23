@@ -195,17 +195,48 @@ class ChatbotController extends Controller
         $dificultad = $request->input('difficulty_rating', 'adecuada'); // muy_facil, adecuada, muy_pesada
         $fatiga = (bool) $request->input('fatigue_reported', false);
         $sobrecargaAceptada = (bool) $request->input('progressive_overload_accepted', false);
+        $sessionId = $request->input('session_id');
 
-        $sesionPendiente = $user->workoutSessions()
-            ->where('status', 'en_progreso')
-            ->latest()
-            ->first();
+        // 1. Buscar primero por ID de sesión específica si se proveyó
+        $sesionPendiente = null;
+        if ($sessionId) {
+            $sesionPendiente = WorkoutSession::where('user_id', $user->id)
+                ->where('id', $sessionId)
+                ->first();
+        }
 
+        // 2. Si no, buscar la sesión en progreso más reciente
         if (!$sesionPendiente) {
+            $sesionPendiente = $user->workoutSessions()
+                ->where('status', 'en_progreso')
+                ->latest()
+                ->first();
+        }
+
+        // 3. Si no hay en progreso, verificar si la última ya fue completada
+        if (!$sesionPendiente) {
+            $ultima = $user->workoutSessions()->latest()->first();
+            if ($ultima && $ultima->status === 'completada') {
+                return response()->json([
+                    'status' => 'info',
+                    'mensaje' => 'Esta rutina ya fue completada anteriormente y su XP ya fue otorgada.',
+                    'user' => $user,
+                ]);
+            }
+
             return response()->json([
                 'status' => 'error',
-                'mensaje' => 'No hay ninguna rutina activa para completar.',
+                'mensaje' => 'No hay ninguna rutina activa para completar. Pídele primero una rutina a Hyperion en el chat.',
             ], 404);
+        }
+
+        // Si ya estaba completada
+        if ($sesionPendiente->status === 'completada') {
+            return response()->json([
+                'status' => 'info',
+                'mensaje' => 'Esta rutina ya fue completada anteriormente y su XP ya fue otorgada.',
+                'user' => $user,
+            ]);
         }
 
         $xpGanada = $this->rpgService->calcularXpRutina([
