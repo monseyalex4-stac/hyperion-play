@@ -16,5 +16,3 @@ services:
         value: sqlite
       - key: DB_DATABASE
         value: /var/www/html/database/database.sqlite
-      - key: APP_KEY
-        generateValue: true
