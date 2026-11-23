@@ -261,8 +261,17 @@
 
                 <!-- Chips de Atajos Rápidos -->
                 <div class="px-4 py-2 bg-slate-950/60 border-t border-slate-800/80 flex items-center gap-2 overflow-x-auto text-xs whitespace-nowrap">
+                    <button onclick="enviarMensajeRapido('Quiero una rutina para hacer pecho y bíceps de 30 minutos')" class="px-2.5 py-1 rounded-full bg-slate-800 hover:bg-amber-500/20 text-slate-300 hover:text-amber-300 border border-slate-700 hover:border-amber-500/40 transition">
+                        💪 Pecho y Bíceps (30 min)
+                    </button>
                     <button onclick="enviarMensajeRapido('Generar mi rutina rápida de 15 minutos')" class="px-2.5 py-1 rounded-full bg-slate-800 hover:bg-amber-500/20 text-slate-300 hover:text-amber-300 border border-slate-700 hover:border-amber-500/40 transition">
                         ⚡ Rutina 15 min
+                    </button>
+                    <button onclick="enviarMensajeRapido('Quiero una rutina de 30 minutos de cuerpo completo')" class="px-2.5 py-1 rounded-full bg-slate-800 hover:bg-amber-500/20 text-slate-300 hover:text-amber-300 border border-slate-700 hover:border-amber-500/40 transition">
+                        ⏱️ Rutina 30 min
+                    </button>
+                    <button onclick="enviarMensajeRapido('Quiero una rutina para pierna y glúteo de 45 minutos')" class="px-2.5 py-1 rounded-full bg-slate-800 hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-300 border border-slate-700 hover:border-emerald-500/40 transition">
+                        🦵 Pierna y Glúteo (45 min)
                     </button>
                     <button onclick="enviarMensajeRapido('Quiero una rutina estricta de bajo impacto articular')" class="px-2.5 py-1 rounded-full bg-slate-800 hover:bg-amber-500/20 text-slate-300 hover:text-amber-300 border border-slate-700 hover:border-amber-500/40 transition">
                         🛡️ Bajo impacto

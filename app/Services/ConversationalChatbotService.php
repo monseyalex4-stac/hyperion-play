@@ -84,7 +84,16 @@ class ConversationalChatbotService
             // Asignar valores por defecto conservadores si algún dato fue omitido (HU #7)
             $this->aplicarValoresPorDefectoConservadores($user);
 
-            $rutinaGenerada = $this->routineGenerator->generarRutina($user);
+            $overrides = [];
+            if ($entidades['tiempo'] !== null) {
+                $overrides['tiempo_minutos'] = $entidades['tiempo'];
+            }
+            if (!empty($entidades['musculos'])) {
+                $overrides['musculos_objetivo'] = $entidades['musculos'];
+                $overrides['nombres_musculos'] = $entidades['nombres_musculos'];
+            }
+
+            $rutinaGenerada = $this->routineGenerator->generarRutina($user, $overrides);
 
             $textoRespuesta = "⚡ ¡RUTINA PREPARADA POR HYPERION! ⚡\n\n";
 
@@ -250,20 +259,92 @@ class ConversationalChatbotService
             'entorno' => null,
             'lesion' => null,
             'objetivo' => null,
+            'musculos' => [],
+            'nombres_musculos' => [],
         ];
 
-        // Tiempo
-        if (preg_match('/(\d+)\s*(min|minuto|m)/', $text, $matches)) {
-            $resultado['tiempo'] = (int) $matches[1];
+        // 1. Detección Inteligente de Tiempo (5 a 120 minutos)
+        if (preg_match('/(\d+)\s*(?:minutos?|mins?|m\b)/i', $text, $matches)) {
+            $resultado['tiempo'] = max(5, min(120, (int) $matches[1]));
+        } elseif (preg_match('/(?:tiempo|para|de|durante)\s*(\d+)\s*(?:minutos?|mins?|m)?\b/i', $text, $matches)) {
+            $val = (int) $matches[1];
+            if ($val >= 5 && $val <= 120) {
+                $resultado['tiempo'] = $val;
+            }
         } elseif (str_contains($text, 'media hora') || str_contains($text, '30 min')) {
             $resultado['tiempo'] = 30;
+        } elseif (str_contains($text, 'hora y media') || str_contains($text, '90 min')) {
+            $resultado['tiempo'] = 90;
+        } elseif (str_contains($text, 'una hora') || str_contains($text, '1 hora') || str_contains($text, '60 min')) {
+            $resultado['tiempo'] = 60;
         } elseif (str_contains($text, 'poco tiempo') || str_contains($text, 'rapida') || str_contains($text, 'rápida') || str_contains($text, '15 min')) {
             $resultado['tiempo'] = 15;
-        } elseif (str_contains($text, 'una hora') || str_contains($text, '1 hora')) {
-            $resultado['tiempo'] = 60;
+        } elseif (str_contains($text, 'micro') || str_contains($text, '10 min')) {
+            $resultado['tiempo'] = 10;
         }
 
-        // Entorno
+        // 2. Detección de Grupos Musculares Específicos Solicitados
+        $mapaMusculos = [
+            'pecho'        => ['db' => ['pectorals', 'chest'], 'label' => 'Pecho'],
+            'pectoral'     => ['db' => ['pectorals', 'chest'], 'label' => 'Pecho'],
+            'pectorales'   => ['db' => ['pectorals', 'chest'], 'label' => 'Pecho'],
+            'bicep'        => ['db' => ['biceps'], 'label' => 'Bíceps'],
+            'biceps'       => ['db' => ['biceps'], 'label' => 'Bíceps'],
+            'bícep'        => ['db' => ['biceps'], 'label' => 'Bíceps'],
+            'bíceps'       => ['db' => ['biceps'], 'label' => 'Bíceps'],
+            'tricep'       => ['db' => ['triceps'], 'label' => 'Tríceps'],
+            'triceps'      => ['db' => ['triceps'], 'label' => 'Tríceps'],
+            'trícep'       => ['db' => ['triceps'], 'label' => 'Tríceps'],
+            'tríceps'      => ['db' => ['triceps'], 'label' => 'Tríceps'],
+            'brazo'        => ['db' => ['biceps', 'triceps', 'forearms'], 'label' => 'Brazos'],
+            'brazos'       => ['db' => ['biceps', 'triceps', 'forearms'], 'label' => 'Brazos'],
+            'antebrazo'    => ['db' => ['forearms'], 'label' => 'Antebrazos'],
+            'antebrazos'   => ['db' => ['forearms'], 'label' => 'Antebrazos'],
+            'espalda'      => ['db' => ['lats', 'upper back', 'middle back', 'lower back', 'traps', 'spine'], 'label' => 'Espalda'],
+            'dorsal'       => ['db' => ['lats'], 'label' => 'Espalda'],
+            'dorsales'     => ['db' => ['lats'], 'label' => 'Espalda'],
+            'trapecio'     => ['db' => ['traps'], 'label' => 'Trapecios'],
+            'trapecios'    => ['db' => ['traps'], 'label' => 'Trapecios'],
+            'hombro'       => ['db' => ['delts', 'shoulders'], 'label' => 'Hombros'],
+            'hombros'      => ['db' => ['delts', 'shoulders'], 'label' => 'Hombros'],
+            'deltoide'     => ['db' => ['delts', 'shoulders'], 'label' => 'Hombros'],
+            'deltoides'    => ['db' => ['delts', 'shoulders'], 'label' => 'Hombros'],
+            'pierna'       => ['db' => ['quads', 'quadriceps', 'hamstrings', 'calves', 'adductors', 'abductors'], 'label' => 'Pierna'],
+            'piernas'      => ['db' => ['quads', 'quadriceps', 'hamstrings', 'calves', 'adductors', 'abductors'], 'label' => 'Pierna'],
+            'cuadricep'    => ['db' => ['quads', 'quadriceps'], 'label' => 'Cuádriceps'],
+            'cuadriceps'   => ['db' => ['quads', 'quadriceps'], 'label' => 'Cuádriceps'],
+            'cuádricep'    => ['db' => ['quads', 'quadriceps'], 'label' => 'Cuádriceps'],
+            'cuádriceps'   => ['db' => ['quads', 'quadriceps'], 'label' => 'Cuádriceps'],
+            'femoral'      => ['db' => ['hamstrings'], 'label' => 'Femorales'],
+            'femorales'    => ['db' => ['hamstrings'], 'label' => 'Femorales'],
+            'pantorrilla'  => ['db' => ['calves'], 'label' => 'Pantorrillas'],
+            'pantorrillas' => ['db' => ['calves'], 'label' => 'Pantorrillas'],
+            'gemelo'       => ['db' => ['calves'], 'label' => 'Pantorrillas'],
+            'gemelos'      => ['db' => ['calves'], 'label' => 'Pantorrillas'],
+            'gluteo'       => ['db' => ['glutes'], 'label' => 'Glúteo'],
+            'gluteos'      => ['db' => ['glutes'], 'label' => 'Glúteo'],
+            'glúteo'       => ['db' => ['glutes'], 'label' => 'Glúteo'],
+            'glúteos'      => ['db' => ['glutes'], 'label' => 'Glúteo'],
+            'pompa'        => ['db' => ['glutes'], 'label' => 'Glúteo'],
+            'pompas'       => ['db' => ['glutes'], 'label' => 'Glúteo'],
+            'abdomen'      => ['db' => ['abs', 'abdominals'], 'label' => 'Abdomen'],
+            'abdominales'  => ['db' => ['abs', 'abdominals'], 'label' => 'Abdomen'],
+            'core'         => ['db' => ['abs', 'abdominals'], 'label' => 'Core'],
+            'abs'          => ['db' => ['abs', 'abdominals'], 'label' => 'Abdomen'],
+            'cardio'       => ['db' => ['cardiovascular system'], 'label' => 'Cardio'],
+        ];
+
+        foreach ($mapaMusculos as $keyword => $info) {
+            if (preg_match('/\b' . preg_quote($keyword, '/') . '\b/u', $text)) {
+                $resultado['musculos'] = array_merge($resultado['musculos'], $info['db']);
+                if (!in_array($info['label'], $resultado['nombres_musculos'])) {
+                    $resultado['nombres_musculos'][] = $info['label'];
+                }
+            }
+        }
+        $resultado['musculos'] = array_values(array_unique($resultado['musculos']));
+
+        // 3. Entorno
         if (str_contains($text, 'gimnasio') || str_contains($text, 'gym') || str_contains($text, 'maquinas') || str_contains($text, 'máquinas')) {
             $resultado['entorno'] = 'gimnasio';
         } elseif (str_contains($text, 'mancuerna') || str_contains($text, 'pesas') || str_contains($text, 'bandas') || str_contains($text, 'ligas')) {
@@ -272,7 +353,7 @@ class ConversationalChatbotService
             $resultado['entorno'] = 'casa_sin_equipo';
         }
 
-        // Lesiones
+        // 4. Lesiones
         if (str_contains($text, 'rodilla')) {
             $resultado['lesion'] = 'rodilla';
         } elseif (str_contains($text, 'espalda') || str_contains($text, 'lumbar') || str_contains($text, 'ciática')) {
@@ -285,7 +366,7 @@ class ConversationalChatbotService
             $resultado['lesion'] = 'ninguna';
         }
 
-        // Objetivos
+        // 5. Objetivos
         if (str_contains($text, 'fuerza') || str_contains($text, 'musculo') || str_contains($text, 'músculo')) {
             $resultado['objetivo'] = 'fuerza';
         } elseif (str_contains($text, 'peso') || str_contains($text, 'grasa') || str_contains($text, 'adelgazar')) {
@@ -340,7 +421,19 @@ class ConversationalChatbotService
             || str_contains($text, 'dame una rutina')
             || str_contains($text, 'mision')
             || str_contains($text, 'misión')
-            || str_contains($text, 'emprender');
+            || str_contains($text, 'emprender')
+            || str_contains($text, 'pecho')
+            || str_contains($text, 'bicep')
+            || str_contains($text, 'bícep')
+            || str_contains($text, 'tricep')
+            || str_contains($text, 'trícep')
+            || str_contains($text, 'brazo')
+            || str_contains($text, 'espalda')
+            || str_contains($text, 'pierna')
+            || str_contains($text, 'gluteo')
+            || str_contains($text, 'glúteo')
+            || str_contains($text, 'abdomen')
+            || str_contains($text, 'core');
     }
 
     protected function tieneParametrosSuficientes(User $user): bool

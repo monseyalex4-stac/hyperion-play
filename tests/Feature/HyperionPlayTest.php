@@ -239,6 +239,25 @@ class HyperionPlayTest extends TestCase
     }
 
     /**
+     * Test: Rutina personalizada con tiempo dinámico y grupos musculares específicos.
+     */
+    public function test_rutina_personalizada_tiempo_y_musculos_especificos(): void
+    {
+        $chatbot = app(\App\Services\ConversationalChatbotService::class);
+        $respuesta = $chatbot->procesarMensaje($this->user, 'Quiero una rutina para hacer pecho al biceps de 30 minutos');
+
+        $this->assertEquals('rutina_generada', $respuesta['tipo']);
+        $this->assertEquals(30, $respuesta['rutina']['duracion_minutos']);
+        $this->assertStringContainsString('Pecho', $respuesta['rutina']['titulo']);
+        $this->assertStringContainsString('Bíceps', $respuesta['rutina']['titulo']);
+        $this->assertNotEmpty($respuesta['rutina']['ejercicios']);
+
+        $musculos = array_map(fn($e) => strtolower($e['musculo']), $respuesta['rutina']['ejercicios']);
+        $tienePechoOBiceps = in_array('pectorals', $musculos) || in_array('biceps', $musculos) || in_array('chest', $musculos);
+        $this->assertTrue($tienePechoOBiceps);
+    }
+
+    /**
      * Test de Rutas HTTP y Compatibilidad con DatasetController.
      */
     public function test_http_rutas_hyperion_y_dataset_controller(): void

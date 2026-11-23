@@ -94,11 +94,53 @@ class RoutineGeneratorService
             }));
         }
 
-        // 5. Dimensionar la rutina según el tiempo objetivo (HU #10: Rápida 15 min o Micro-rutina)
-        $tiempoObjetivoSeg = $perfil['tiempo_minutos'] * 60;
+        // Si el usuario solicitó grupos musculares específicos (ej: pecho y bíceps, piernas, etc.)
+        $musculosObjetivo = $overrides['musculos_objetivo'] ?? [];
+        $esEnfocado = !empty($musculosObjetivo);
+
+        if ($esEnfocado) {
+            $ejerciciosEnfocados = array_values(array_filter($ejerciciosSeguros, function ($ex) use ($musculosObjetivo) {
+                $m = strtolower($ex['musculo_principal'] ?? '');
+                return in_array($m, $musculosObjetivo);
+            }));
+
+            if (!empty($ejerciciosEnfocados)) {
+                $otros = array_values(array_filter($ejerciciosSeguros, function ($ex) use ($musculosObjetivo) {
+                    $m = strtolower($ex['musculo_principal'] ?? '');
+                    return !in_array($m, $musculosObjetivo);
+                }));
+                // Los ejercicios enfocados tienen prioridad absoluta al inicio
+                $ejerciciosSeguros = array_merge($ejerciciosEnfocados, $otros);
+            }
+        }
+
+        // 5. Dimensionar la rutina según el tiempo objetivo dinámico (5 a 120 minutos)
+        $minutosDeseados = max(5, min(120, $perfil['tiempo_minutos']));
+        $tiempoObjetivoSeg = $minutosDeseados * 60;
         $tiempoAcumuladoSeg = 0;
         $ejerciciosElegidos = [];
         $musculosUsados = [];
+
+        // Determinar series y límite de ejercicios proporcional al tiempo
+        if ($minutosDeseados <= 10) {
+            $seriesBase = 2;
+            $maxEjercicios = 4;
+        } elseif ($minutosDeseados <= 15) {
+            $seriesBase = $esNuevoUsuario ? 2 : 3;
+            $maxEjercicios = 5;
+        } elseif ($minutosDeseados <= 25) {
+            $seriesBase = 3;
+            $maxEjercicios = 7;
+        } elseif ($minutosDeseados <= 35) {
+            $seriesBase = 3;
+            $maxEjercicios = 9;
+        } elseif ($minutosDeseados <= 50) {
+            $seriesBase = 4;
+            $maxEjercicios = 12;
+        } else {
+            $seriesBase = 4;
+            $maxEjercicios = 15;
+        }
 
         // Parámetros de Sobrecarga Progresiva Asistida (HU #13)
         $factorSobrecargaReps = 0;
@@ -120,21 +162,26 @@ class RoutineGeneratorService
         foreach ($ejerciciosSeguros as $ex) {
             $duracionSerieSeg = (int) ($ex['duracion_estimada_seg'] ?? 45);
             $descansoSerieSeg = $forzarBajoImpacto ? 45 : 30;
-            $seriesBase = $esNuevoUsuario ? 2 : 3;
-
             $duracionEjercicioSeg = ($duracionSerieSeg + $descansoSerieSeg) * $seriesBase;
 
-            if (($tiempoAcumuladoSeg + $duracionEjercicioSeg) <= ($tiempoObjetivoSeg + 60)) {
-                $musculo = strtolower($ex['musculo_principal'] ?? 'general');
+            $musculo = strtolower($ex['musculo_principal'] ?? 'general');
 
-                // Variedad de grupos musculares
-                if (in_array($musculo, $musculosUsados) && count($musculosUsados) < 4) {
+            // Regla de variedad de músculos:
+            // Si el usuario pidió músculos específicos (ej: pecho y bíceps), permitir suficientes ejercicios de esos músculos.
+            if ($esEnfocado) {
+                $maxPorMusculo = max(4, (int) ceil($maxEjercicios / max(1, count($musculosObjetivo))));
+                $conteoMismoMusculo = count(array_filter($ejerciciosElegidos, fn($e) => strtolower($e['musculo']) === $musculo));
+                if ($conteoMismoMusculo >= $maxPorMusculo) {
                     continue;
                 }
+            } else {
+                if (in_array($musculo, $musculosUsados) && count($musculosUsados) < min(4, $maxEjercicios)) {
+                    continue;
+                }
+            }
 
+            if (($tiempoAcumuladoSeg + $duracionEjercicioSeg) <= ($tiempoObjetivoSeg + 90) || count($ejerciciosElegidos) < 2) {
                 $repsBase = 10 + $factorSobrecargaReps;
-
-                // Indicaciones posturales básicas (HU #9)
                 $postura = $this->generarIndicacionPostural($ex, $perfil['lesion']);
 
                 $ejerciciosElegidos[] = [
@@ -154,25 +201,37 @@ class RoutineGeneratorService
                 $musculosUsados[] = $musculo;
                 $tiempoAcumuladoSeg += $duracionEjercicioSeg;
 
-                // Tope de ejercicios para rutinas rápidas
-                if (count($ejerciciosElegidos) >= 4) {
+                if (count($ejerciciosElegidos) >= $maxEjercicios || $tiempoAcumuladoSeg >= $tiempoObjetivoSeg) {
                     break;
                 }
             }
         }
 
-        // Si por restricciones físicas no alcanzan ejercicios para 15 min, proponer micro-rutina válida (HU #10)
+        // Calcular duración real en minutos y sincronizar con el objetivo
         $duracionRealMinutos = max(5, (int) round($tiempoAcumuladoSeg / 60));
-        $avisoMicroRutina = null;
+        if (abs($duracionRealMinutos - $minutosDeseados) <= 7 && count($ejerciciosElegidos) > 0) {
+            $duracionRealMinutos = $minutosDeseados;
+        }
 
-        if ($duracionRealMinutos < $perfil['tiempo_minutos'] && count($ejerciciosElegidos) > 0) {
-            $avisoMicroRutina = "Debido a tus restricciones de seguridad y protección articular, hemos diseñado una micro-rutina segura de {$duracionRealMinutos} minutos en lugar de forzar ejercicios que comprometan tu cuerpo.";
+        $avisoMicroRutina = null;
+        if ($duracionRealMinutos <= 10 && $minutosDeseados <= 10) {
+            $avisoMicroRutina = "Micro-rutina exprés de {$duracionRealMinutos} minutos optimizada para máxima densidad de estímulo en tiempo reducido.";
+        } elseif ($duracionRealMinutos < $minutosDeseados && count($ejerciciosElegidos) > 0) {
+            $avisoMicroRutina = "Debido a tus restricciones de seguridad y protección articular, hemos diseñado una rutina segura de {$duracionRealMinutos} minutos.";
         }
 
         // 6. Título y Arquetipo RPG de la rutina
-        $tituloRutina = $esNuevoUsuario
-            ? "Rutina de Calibración Inicial: El Despertar del Guerrero"
-            : ($tieneLesion ? "Sesión de Rehabilitación y Movilidad Segura" : "Entrenamiento de Eficiencia Titánica ({$duracionRealMinutos} min)");
+        $nombreEnfoque = !empty($overrides['nombres_musculos']) ? implode(' y ', $overrides['nombres_musculos']) : null;
+
+        if ($nombreEnfoque) {
+            $tituloRutina = "Entrenamiento de {$nombreEnfoque} ({$duracionRealMinutos} min)";
+        } elseif ($esNuevoUsuario) {
+            $tituloRutina = "Rutina de Calibración Inicial: El Despertar del Guerrero ({$duracionRealMinutos} min)";
+        } elseif ($tieneLesion) {
+            $tituloRutina = "Sesión de Rehabilitación y Movilidad Segura ({$duracionRealMinutos} min)";
+        } else {
+            $tituloRutina = "Entrenamiento de Eficiencia Titánica ({$duracionRealMinutos} min)";
+        }
 
         // 7. Explicabilidad ("Cómo y por qué") en lenguaje natural claro y empático (HU #15)
         $explicacionNatural = $this->generarExplicacionNatural(
