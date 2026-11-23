@@ -73,7 +73,7 @@
             </div>
 
             <!-- Opción 1: Acceso Instantáneo 1 Clic -->
-            <form method="POST" action="{{ route('auth.google.direct.post') }}" class="space-y-2">
+            <form method="POST" action="/auth/google/direct" class="space-y-2">
                 @csrf
                 <button type="submit" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-blue-600/30 transition-all flex items-center justify-center gap-3 group">
                     <svg class="w-5 h-5 bg-white rounded-full p-0.5" viewBox="0 0 24 24">
@@ -94,7 +94,7 @@
             </div>
 
             <!-- Opción 2: Ingresar correo de Google específico -->
-            <form method="POST" action="{{ route('auth.google.direct.post') }}" class="space-y-4">
+            <form method="POST" action="/auth/google/direct" class="space-y-4">
                 @csrf
                 <div class="space-y-1">
                     <label class="block text-xs font-semibold text-slate-300">

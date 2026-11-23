@@ -88,7 +88,7 @@
             </div>
 
             <!-- Formulario de Acceso -->
-            <form action="{{ route('login.post') }}" method="POST" class="space-y-4 text-xs">
+            <form action="/login" method="POST" class="space-y-4 text-xs">
                 @csrf
 
                 <div>
@@ -158,7 +158,7 @@
             </p>
 
             <!-- Opción 1 Clic Instantáneo -->
-            <form method="POST" action="{{ route('auth.google.direct.post') }}" class="pt-1">
+            <form method="POST" action="/auth/google/direct" class="pt-1">
                 @csrf
                 <button type="submit" class="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md flex items-center justify-center gap-2 group transition">
                     <svg class="w-4 h-4 bg-white rounded-full p-0.5" viewBox="0 0 24 24">
