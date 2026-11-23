@@ -19,9 +19,9 @@ class AuthTest extends TestCase
         $response = $this->get('/login');
 
         $response->assertStatus(200);
-        $response->assertSee('HYPERION PLAY');
+        $response->assertSee('Iniciar sesión o registrarse');
         $response->assertSee('Continuar con Google');
-        $response->assertSee('Entrar a la Forja');
+        $response->assertSee('Continuar');
     }
 
     /**
@@ -181,9 +181,9 @@ class AuthTest extends TestCase
         $response = $this->get('/auth/google/direct');
 
         $response->assertStatus(200);
-        $response->assertSee('Acceso con Cuenta Real de Google');
-        $response->assertSee('Abrir Ventana Oficial de Google');
-        $response->assertSee('Tu Correo Real de Google (@gmail.com)');
+        $response->assertSee('Selecciona una cuenta');
+        $response->assertSee('Iniciar sesión con Google');
+        $response->assertSee('santiagojimenezbalbuena@gmail.com');
     }
 
     /**
