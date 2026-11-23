@@ -41,6 +41,7 @@ Route::prefix('api')->group(function () {
     Route::post('/user/update', [ChatbotController::class, 'updateUser']);
     Route::post('/user/switch', [ChatbotController::class, 'switchUser']);
     Route::post('/workout/complete', [ChatbotController::class, 'completeWorkout']);
+    Route::get('/user/workout-history', [ChatbotController::class, 'getHistory']);
     Route::get('/workout/history', [RoutineApiController::class, 'getHistory']);
     Route::post('/workout/history', [RoutineApiController::class, 'saveHistory']);
     Route::get('/metrics/report', [ChatbotController::class, 'getMetricsReport']);

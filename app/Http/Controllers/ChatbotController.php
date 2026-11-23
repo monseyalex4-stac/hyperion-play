@@ -44,11 +44,13 @@ class ChatbotController extends Controller
         $userId = $request->input('user_id')
             ?? $request->query('user_id')
             ?? session('active_user_id')
+            ?? Auth::id()
             ?? $request->cookie('hyperion_user_id');
 
         if ($userId) {
             $user = User::find($userId);
             if ($user) {
+                Auth::login($user, true);
                 session(['active_user_id' => $user->id]);
                 cookie()->queue('hyperion_user_id', (string) $user->id, 60 * 24 * 30);
                 return $user;
@@ -56,15 +58,16 @@ class ChatbotController extends Controller
         }
 
         // Si no se encuentra el ID especificado, buscar el último activo en sesión
-        $activeSessionId = session('active_user_id') ?? $request->cookie('hyperion_user_id');
+        $activeSessionId = session('active_user_id') ?? Auth::id() ?? $request->cookie('hyperion_user_id');
         if ($activeSessionId) {
             $user = User::find($activeSessionId);
             if ($user) {
+                Auth::login($user, true);
                 return $user;
             }
         }
 
-        $user = User::latest('updated_at')->first() ?? User::first();
+        $user = Auth::user() ?? User::latest('updated_at')->first() ?? User::first();
         if (!$user) {
             $user = User::create([
                 'name' => 'Aventurero',
@@ -85,6 +88,7 @@ class ChatbotController extends Controller
             ]);
         }
 
+        Auth::login($user, true);
         session(['active_user_id' => $user->id]);
         cookie()->queue('hyperion_user_id', (string) $user->id, 60 * 24 * 30);
 
@@ -127,6 +131,7 @@ class ChatbotController extends Controller
         return response()->json([
             'status' => 'success',
             'respuesta' => $respuesta,
+            'sesiones' => $user->workoutSessions()->latest()->take(10)->get(),
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -308,6 +313,7 @@ class ChatbotController extends Controller
 
         $user->save();
 
+        Auth::login($user, true);
         session(['active_user_id' => $user->id]);
         cookie()->queue('hyperion_user_id', (string) $user->id, 60 * 24 * 30);
 
@@ -423,6 +429,7 @@ class ChatbotController extends Controller
             'status' => 'success',
             'mensaje' => '¡Rutina completada y registrada en el historial!',
             'rpg' => $resultadoRpg,
+            'sesiones' => $user->workoutSessions()->latest()->take(10)->get(),
             'user' => $user,
         ]);
     }
@@ -433,13 +440,16 @@ class ChatbotController extends Controller
     public function getHistory(Request $request): JsonResponse
     {
         $user = $this->resolveUser($request);
-        $historial = $user->workoutSessions()
+        $sesiones = $user->workoutSessions()
             ->latest()
-            ->paginate(10);
+            ->take(20)
+            ->get();
 
         return response()->json([
             'status' => 'success',
-            'historial' => $historial,
+            'sesiones' => $sesiones,
+            'historial' => $sesiones,
+            'count' => $user->workoutSessions()->count(),
         ]);
     }
 

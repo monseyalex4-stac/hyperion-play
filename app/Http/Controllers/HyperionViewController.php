@@ -19,24 +19,22 @@ class HyperionViewController extends Controller
 
     public function index(Request $request): View
     {
-        // 1. Prioridad: Parámetro en URL (?user_id=X)
-        $userId = $request->query('user_id');
+        // 1. Prioridad: Parámetro en URL (?user_id=X), luego sesión activa, usuario Auth o cookie
+        $userId = $request->query('user_id')
+            ?? session('active_user_id')
+            ?? Auth::id()
+            ?? $request->cookie('hyperion_user_id');
 
-        // 2. Si el usuario está autenticado y no pide otro id en URL
-        if (!$userId && Auth::check()) {
+        $user = $userId ? User::find($userId) : null;
+
+        // 2. Si no se encontró por ID, intentar con Auth si existe
+        if (!$user && Auth::check()) {
             $user = Auth::user();
-        } else {
-            // 3. Prioridad: Sesión o Cookie del usuario
-            if (!$userId) {
-                $userId = session('active_user_id') ?? $request->cookie('hyperion_user_id');
-            }
+        }
 
-            $user = $userId ? User::find($userId) : null;
-
-            // 4. Fallback: El último usuario activo o el primero
-            if (!$user) {
-                $user = User::latest('updated_at')->first() ?? User::first();
-            }
+        // 3. Fallback: El último usuario actualizado o el primero
+        if (!$user) {
+            $user = User::latest('updated_at')->first() ?? User::first();
         }
 
         if (!$user) {

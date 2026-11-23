@@ -427,7 +427,7 @@
                             <i class="fa-solid fa-clock-rotate-left text-amber-400"></i>
                             <h2 class="font-bold text-slate-100 text-sm uppercase tracking-wide">Historial de Entrenamientos</h2>
                         </div>
-                        <span class="text-[10px] text-slate-400 font-medium">{{ count($sesiones) }} registro(s)</span>
+                        <span id="sesiones-counter" class="text-[10px] text-slate-400 font-medium">{{ count($sesiones) }} registro(s)</span>
                     </div>
                     
                     <div id="sesiones-container" class="space-y-2 max-h-56 overflow-y-auto pr-1">
@@ -844,6 +844,12 @@
                         }
                     }
 
+                    if (data.sesiones) {
+                        renderizarHistorialEntrenamientos(data.sesiones);
+                    } else if (text.toLowerCase().includes('termine') || text.toLowerCase().includes('terminé') || text.toLowerCase().includes('complete') || text.toLowerCase().includes('completé')) {
+                        recargarHistorialEntrenamientos();
+                    }
+
                     if (data.user) {
                         try {
                             actualizarHUD(data.user);
@@ -1012,6 +1018,11 @@
                             console.warn('Error al actualizar HUD:', hudErr);
                         }
                     }
+                    if (data.sesiones) {
+                        renderizarHistorialEntrenamientos(data.sesiones);
+                    } else {
+                        recargarHistorialEntrenamientos();
+                    }
                     document.getElementById('rutina-placeholder').classList.remove('hidden');
                     document.getElementById('rutina-contenido').classList.add('hidden');
                     rutinaActual = null;
@@ -1029,6 +1040,96 @@
             }
         }
 
+        // Renderizar dinámicamente el historial de entrenamientos en el panel lateral (HU #12)
+        function renderizarHistorialEntrenamientos(sesiones) {
+            const container = document.getElementById('sesiones-container');
+            const counter = document.getElementById('sesiones-counter');
+            if (!container) return;
+
+            if (!Array.isArray(sesiones)) {
+                sesiones = (sesiones && sesiones.data) ? sesiones.data : [];
+            }
+
+            if (counter) {
+                counter.innerText = `${sesiones.length} registro(s)`;
+            }
+
+            if (!sesiones || sesiones.length === 0) {
+                container.innerHTML = `
+                    <div id="sesiones-empty" class="text-center py-6 text-slate-500 text-xs space-y-1">
+                        <i class="fa-solid fa-shield text-slate-600 text-base"></i>
+                        <p>Sin entrenamientos aún. ¡Completa tu primera rutina para guardar tu progreso!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            sesiones.forEach(s => {
+                const isCompleted = (s.status === 'completada');
+                const badgeStatus = isCompleted
+                    ? `<span class="text-[9px] px-1.5 py-0.2 bg-emerald-500/20 text-emerald-400 rounded font-bold">Completada</span>`
+                    : `<span class="text-[9px] px-1.5 py-0.2 bg-amber-500/20 text-amber-300 rounded font-bold">En Progreso</span>`;
+                
+                const envText = (s.target_environment || 'casa_sin_equipo').replace(/_/g, ' ');
+                const diffText = s.difficulty_rating 
+                    ? `<span>•</span><span class="text-amber-300/80 capitalize">${s.difficulty_rating.replace(/_/g, ' ')}</span>` 
+                    : '';
+                const xpMarkup = (s.xp_earned && s.xp_earned > 0)
+                    ? `<span class="px-2 py-0.5 rounded font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[11px]">+${s.xp_earned} XP</span>`
+                    : '';
+                
+                let fechaStr = '';
+                if (s.created_at) {
+                    const d = new Date(s.created_at);
+                    if (!isNaN(d.getTime())) {
+                        const dia = String(d.getDate()).padStart(2, '0');
+                        const mes = String(d.getMonth() + 1).padStart(2, '0');
+                        const hora = String(d.getHours()).padStart(2, '0');
+                        const min = String(d.getMinutes()).padStart(2, '0');
+                        fechaStr = `${dia}/${mes} ${hora}:${min}`;
+                    }
+                }
+
+                html += `
+                    <div class="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-xs flex items-center justify-between">
+                        <div class="space-y-0.5">
+                            <div class="font-semibold text-slate-200 flex items-center gap-1.5">
+                                <span>${s.title || 'Sesión de Entrenamiento'}</span>
+                                ${badgeStatus}
+                            </div>
+                            <div class="text-[10px] text-slate-400 flex items-center gap-1.5">
+                                <span><i class="fa-regular fa-clock mr-1 text-[9px]"></i>${s.total_duration_minutes || 15} min</span>
+                                <span>•</span>
+                                <span class="capitalize">${envText}</span>
+                                ${diffText}
+                            </div>
+                        </div>
+                        <div class="text-right pl-2 shrink-0">
+                            ${xpMarkup}
+                            <div class="text-[9px] text-slate-500 mt-0.5">${fechaStr}</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // Consultar y recargar historial de entrenamientos vía API
+        async function recargarHistorialEntrenamientos() {
+            try {
+                const uid = getActiveUserId();
+                const res = await fetch(`/api/user/workout-history?user_id=${uid}`);
+                const data = await res.json();
+                if (data.status === 'success' && data.sesiones) {
+                    renderizarHistorialEntrenamientos(data.sesiones);
+                }
+            } catch (e) {
+                console.warn('Error al recargar historial de entrenamientos:', e);
+            }
+        }
+
         // Actualizar barra de XP, nivel y datos del HUD
         function actualizarHUD(user) {
             if (!user) return;
@@ -1040,7 +1141,10 @@
             const elSelector = document.getElementById('selector-aventurero');
             if (elSelector && user.id) {
                 const opt = elSelector.querySelector(`option[value="${user.id}"]`);
-                if (opt) opt.innerText = `${user.name} (Lv ${user.current_level})`;
+                if (opt) {
+                    opt.innerText = `${user.name} (Lv ${user.current_level})`;
+                    opt.textContent = `${user.name} (Lv ${user.current_level})`;
+                }
             }
 
             const elTitulo = document.getElementById('hud-titulo');
@@ -1087,6 +1191,12 @@
 
                         const elLesion = document.getElementById('hud-lesion');
                         if (elLesion) elLesion.innerText = u.injury;
+
+                        const selOpt = elSelector?.querySelector(`option[value="${u.id}"]`);
+                        if (selOpt) {
+                            selOpt.innerText = `${u.name} (Lv ${u.current_level})`;
+                            selOpt.textContent = `${u.name} (Lv ${u.current_level})`;
+                        }
                     }
                 })
                 .catch(err => console.warn('Error al actualizar HUD:', err));
@@ -1302,7 +1412,8 @@
                 const data = await response.json();
                 if (data.status === 'success') {
                     cerrarModalEditarUsuario();
-                    window.location.reload();
+                    const targetId = (data.user && data.user.id) ? data.user.id : getActiveUserId();
+                    window.location.href = window.location.pathname + '?user_id=' + targetId;
                 } else {
                     alert(data.mensaje || 'Error al actualizar el aventurero.');
                 }

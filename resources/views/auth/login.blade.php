@@ -66,10 +66,10 @@
             </div>
         @endif
 
-        <!-- Botones de Acceso Rápido (Pills) -->
-        <div class="space-y-3 pt-1">
+        <!-- Botones de Acceso Rápido (Pills estilo ChatGPT - Imagen de Referencia) -->
+        <div class="space-y-2.5 pt-1">
             <!-- Botón 1: Continuar con Google -->
-            <button type="button" onclick="abrirSelectorGoogle()" class="w-full py-3 px-4 rounded-full btn-pill-dark text-white font-medium text-xs transition flex items-center justify-center gap-3 shadow-sm">
+            <button type="button" onclick="abrirSelectorGoogle()" class="w-full py-3 px-4 rounded-full btn-pill-dark text-white font-medium text-xs transition flex items-center justify-center gap-3 shadow-sm hover:border-slate-500">
                 <svg class="w-4 h-4" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                     <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -79,11 +79,17 @@
                 <span>Continuar con Google</span>
             </button>
 
-            <!-- Botón 2: Continuar con Nuevo Aventurero -->
-            <a href="{{ route('register') }}" class="w-full py-3 px-4 rounded-full btn-pill-dark text-white font-medium text-xs transition flex items-center justify-center gap-2.5 shadow-sm">
-                <i class="fa-solid fa-user-plus text-amber-400 text-xs"></i>
-                <span>Crear Nuevo Aventurero RPG</span>
-            </a>
+            <!-- Botón 2: Continuar con Apple -->
+            <button type="button" onclick="iniciarConApple()" class="w-full py-3 px-4 rounded-full btn-pill-dark text-white font-medium text-xs transition flex items-center justify-center gap-2.5 shadow-sm hover:border-slate-500">
+                <i class="fa-brands fa-apple text-base"></i>
+                <span>Continuar con Apple</span>
+            </button>
+
+            <!-- Botón 3: Continuar con el teléfono -->
+            <button type="button" onclick="iniciarConTelefono()" class="w-full py-3 px-4 rounded-full btn-pill-dark text-white font-medium text-xs transition flex items-center justify-center gap-2.5 shadow-sm hover:border-slate-500">
+                <i class="fa-solid fa-phone text-xs text-slate-300"></i>
+                <span>Continuar con el teléfono</span>
+            </button>
         </div>
 
         <!-- Separador 'o' -->
@@ -347,6 +353,25 @@
                 console.error(err);
                 document.getElementById('modal-loading-overlay').classList.add('hidden');
                 alert('Error al conectar con el servidor.');
+            }
+        }
+
+        function iniciarConApple() {
+            const appleEmail = prompt('Ingresa tu Apple ID o correo de iCloud:', 'aventurero@icloud.com');
+            if (appleEmail) {
+                const name = appleEmail.split('@')[0];
+                const avatar = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=000000&textColor=ffffff`;
+                ejecutarCuentaGoogle(appleEmail, name + ' (Apple)', avatar);
+            }
+        }
+
+        function iniciarConTelefono() {
+            const tel = prompt('Ingresa tu número de teléfono móvil (+52...):', '+52 55 1234 5678');
+            if (tel) {
+                const telClean = tel.replace(/[^0-9]/g, '');
+                const telEmail = `tel_${telClean || 'movil'}@hyperionplay.com`;
+                const avatar = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(tel)}&backgroundColor=1e293b&textColor=ffffff`;
+                ejecutarCuentaGoogle(telEmail, 'Móvil ' + (tel.slice(-4) || 'Usuario'), avatar);
             }
         }
 
