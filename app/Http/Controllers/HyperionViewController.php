@@ -63,6 +63,19 @@ class HyperionViewController extends Controller
 
         $allUsers = User::orderBy('id', 'asc')->get();
         $user->load('quests');
+        if ($user->quests->isEmpty()) {
+            \App\Models\UserQuest::create([
+                'user_id'       => $user->id,
+                'quest_key'     => 'mision_calibracion_' . $user->id,
+                'title'         => 'El Despertar del Guerrero',
+                'description'   => 'Completa tu primera sesión guiada por Hyperion',
+                'target_count'  => 1,
+                'current_count' => 0,
+                'reward_xp'     => 30,
+                'completed'     => false,
+            ]);
+            $user->load('quests');
+        }
         $nivelInfo = $this->rpgService->obtenerInfoNivelPorXp($user->current_xp ?? 0);
         $sesiones = $user->workoutSessions()->latest()->take(6)->get();
 

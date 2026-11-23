@@ -333,7 +333,14 @@ class ConversationalChatbotService
 
     protected function esSolicitudRutina(string $text): bool
     {
-        return str_contains($text, 'rutina') || str_contains($text, 'entrenar') || str_contains($text, 'ejercicios') || str_contains($text, 'empezar') || str_contains($text, 'dame una rutina');
+        return str_contains($text, 'rutina') 
+            || str_contains($text, 'entrenar') 
+            || str_contains($text, 'ejercicios') 
+            || str_contains($text, 'empezar') 
+            || str_contains($text, 'dame una rutina')
+            || str_contains($text, 'mision')
+            || str_contains($text, 'misión')
+            || str_contains($text, 'emprender');
     }
 
     protected function tieneParametrosSuficientes(User $user): bool

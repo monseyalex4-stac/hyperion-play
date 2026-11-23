@@ -189,13 +189,13 @@ class GamificationRpgService
         foreach ($quests as $quest) {
             $updated = false;
 
-            if ($quest->quest_key === 'mision_calibracion') {
+            if ($quest->quest_key === 'mision_calibracion' || str_starts_with($quest->quest_key, 'mision_calibracion')) {
                 $quest->current_count += 1;
                 $updated = true;
-            } elseif ($quest->quest_key === 'mision_3_rutinas') {
+            } elseif ($quest->quest_key === 'mision_3_rutinas' || str_starts_with($quest->quest_key, 'mision_3_rutinas')) {
                 $quest->current_count += 1;
                 $updated = true;
-            } elseif ($quest->quest_key === 'mision_progresion' && $session->progressive_overload_applied) {
+            } elseif (($quest->quest_key === 'mision_progresion' || str_starts_with($quest->quest_key, 'mision_progresion')) && $session->progressive_overload_applied) {
                 $quest->current_count += 1;
                 $updated = true;
             }

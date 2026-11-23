@@ -396,24 +396,61 @@
 
                 <!-- Card de Misiones Semanales (HU #14) -->
                 <div class="rpg-card rounded-2xl p-5">
-                    <div class="flex items-center space-x-2 pb-3 border-b border-slate-800 mb-3">
-                        <i class="fa-solid fa-scroll text-amber-400"></i>
-                        <h2 class="font-bold text-slate-100 text-sm uppercase tracking-wide">Misiones del Aventurero</h2>
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-3">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-scroll text-amber-400"></i>
+                            <h2 class="font-bold text-slate-100 text-sm uppercase tracking-wide">Misiones del Aventurero</h2>
+                        </div>
+                        <span id="misiones-count" class="text-[10px] text-slate-400 font-medium">{{ count($user->quests) }} misión(es)</span>
                     </div>
                     
                     <div id="quests-container" class="space-y-2.5">
                         @foreach($user->quests as $q)
-                        <div class="p-3 rounded-xl {{ $q->completed ? 'bg-emerald-950/20 border-emerald-500/30' : 'bg-slate-900/60 border-slate-800' }} border text-xs flex items-center justify-between">
-                            <div class="space-y-0.5">
-                                <div class="font-semibold {{ $q->completed ? 'text-emerald-300 line-through' : 'text-slate-200' }}">
-                                    {{ $q->title }}
+                        <div 
+                            id="quest-card-{{ $q->id }}"
+                            onclick="seleccionarMision({{ $q->id }}, '{{ addslashes($q->title) }}', '{{ addslashes($q->description) }}', {{ $q->completed ? 'true' : 'false' }})"
+                            class="quest-card p-3 rounded-xl {{ $q->completed ? 'bg-emerald-950/20 border-emerald-500/30 opacity-80' : 'bg-slate-900/60 border-slate-800 hover:border-amber-500/60 hover:bg-slate-800/80 cursor-pointer' }} border text-xs transition-all duration-200 relative group"
+                        >
+                            <div class="flex items-start justify-between gap-2">
+                                <div class="space-y-1 flex-1">
+                                    <div class="flex items-center gap-2">
+                                        <div id="quest-radio-{{ $q->id }}" class="w-4 h-4 rounded-full border border-slate-600 flex items-center justify-center shrink-0 transition {{ $q->completed ? 'bg-emerald-500 border-emerald-400' : '' }}">
+                                            @if($q->completed)
+                                                <i class="fa-solid fa-check text-[9px] text-slate-950 font-bold"></i>
+                                            @endif
+                                        </div>
+                                        <div class="font-semibold {{ $q->completed ? 'text-emerald-300 line-through' : 'text-slate-200 group-hover:text-amber-300' }} transition flex items-center gap-1.5">
+                                            <span>{{ $q->title }}</span>
+                                            <span id="quest-badge-selected-{{ $q->id }}" class="hidden text-[9px] px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold uppercase tracking-wider">
+                                                Objetivo
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="text-[11px] text-slate-400 pl-6">{{ $q->description }}</div>
                                 </div>
-                                <div class="text-[11px] text-slate-400">{{ $q->description }}</div>
+                                <div class="text-right pl-2 shrink-0">
+                                    <span class="px-2 py-0.5 rounded font-bold {{ $q->completed ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20' }}">
+                                        +{{ $q->reward_xp }} XP
+                                    </span>
+                                </div>
                             </div>
-                            <div class="text-right pl-3 shrink-0">
-                                <span class="px-2 py-0.5 rounded font-bold {{ $q->completed ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20' }}">
-                                    +{{ $q->reward_xp }} XP
+
+                            <!-- Barra de acción que aparece al seleccionar la misión -->
+                            <div id="quest-action-{{ $q->id }}" class="hidden mt-2.5 pt-2 border-t border-amber-500/20 flex items-center justify-between text-[11px]">
+                                <span class="text-amber-400 flex items-center gap-1.5 font-medium">
+                                    <i class="fa-solid fa-crosshairs text-xs animate-pulse"></i>
+                                    <span>Misión activa en seguimiento</span>
                                 </span>
+                                @if(!$q->completed)
+                                <button 
+                                    type="button" 
+                                    onclick="event.stopPropagation(); emprenderMision('{{ addslashes($q->title) }}', '{{ addslashes($q->description) }}')" 
+                                    class="px-3 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-[10px] shadow-sm transition flex items-center gap-1.5"
+                                >
+                                    <i class="fa-solid fa-play text-[8px]"></i>
+                                    <span>Emprender Misión</span>
+                                </button>
+                                @endif
                             </div>
                         </div>
                         @endforeach
@@ -1513,6 +1550,70 @@
             }
         }
 
+        // Manejo interactivo de Misiones del Aventurero (HU #14)
+        let misionSeleccionadaId = null;
+
+        function seleccionarMision(questId, titulo, descripcion, completada) {
+            if (completada) {
+                agregarBurbuja('hyperion', `⚔️ La misión "${titulo}" ya ha sido completada con honor. ¡Revisa tu crónica de entrenamientos para ver la gloria ganada!`);
+                return;
+            }
+
+            misionSeleccionadaId = questId;
+            try {
+                localStorage.setItem('hyperion_selected_quest_' + getActiveUserId(), questId);
+            } catch(e) {}
+
+            // Desmarcar todas las tarjetas de misiones
+            document.querySelectorAll('.quest-card').forEach(card => {
+                if (!card.classList.contains('opacity-80')) {
+                    card.classList.remove('border-amber-500', 'bg-amber-950/20', 'shadow-lg', 'shadow-amber-500/10', 'ring-1', 'ring-amber-500/40');
+                    card.classList.add('border-slate-800', 'bg-slate-900/60');
+                }
+            });
+
+            document.querySelectorAll('[id^="quest-badge-selected-"]').forEach(badge => badge.classList.add('hidden'));
+            document.querySelectorAll('[id^="quest-action-"]').forEach(act => act.classList.add('hidden'));
+            document.querySelectorAll('[id^="quest-radio-"]').forEach(radio => {
+                if (!radio.classList.contains('bg-emerald-500')) {
+                    radio.innerHTML = '';
+                    radio.classList.remove('border-amber-400', 'bg-amber-400');
+                    radio.classList.add('border-slate-600');
+                }
+            });
+
+            // Resaltar la tarjeta seleccionada
+            const card = document.getElementById(`quest-card-${questId}`);
+            if (card) {
+                card.classList.remove('border-slate-800', 'bg-slate-900/60');
+                card.classList.add('border-amber-500', 'bg-amber-950/20', 'shadow-lg', 'shadow-amber-500/10', 'ring-1', 'ring-amber-500/40');
+            }
+
+            const badge = document.getElementById(`quest-badge-selected-${questId}`);
+            if (badge) badge.classList.remove('hidden');
+
+            const act = document.getElementById(`quest-action-${questId}`);
+            if (act) act.classList.remove('hidden');
+
+            const radio = document.getElementById(`quest-radio-${questId}`);
+            if (radio && !radio.classList.contains('bg-emerald-500')) {
+                radio.innerHTML = '<div class="w-1.5 h-1.5 rounded-full bg-slate-950"></div>';
+                radio.classList.remove('border-slate-600');
+                radio.classList.add('border-amber-400', 'bg-amber-400');
+            }
+
+            // Actualizar placeholder en el chat para guiar al usuario
+            const chatInput = document.getElementById('chat-input');
+            if (chatInput && !chatInput.value.trim()) {
+                chatInput.placeholder = `Misión fijada: "${titulo}". Escribe o pulsa 'Emprender Misión'...`;
+            }
+        }
+
+        function emprenderMision(titulo, descripcion) {
+            const promptMsg = `Quiero emprender la misión "${titulo}": ${descripcion}. Prepárame la rutina adecuada para completarla.`;
+            enviarMensajeRapido(promptMsg);
+        }
+
         // Inicialización de contexto persistente del aventurero
         document.addEventListener('DOMContentLoaded', () => {
             const ultimaRutinaInicial = @json($ultimaRutina ?? null);
@@ -1522,6 +1623,20 @@
                 } catch (e) {
                     console.warn('Error al restaurar rutina inicial:', e);
                 }
+            }
+
+            // Seleccionar automáticamente la primera misión activa o guardada
+            try {
+                const storedQuestId = localStorage.getItem('hyperion_selected_quest_' + getActiveUserId());
+                let cardToSelect = storedQuestId ? document.getElementById(`quest-card-${storedQuestId}`) : null;
+                if (!cardToSelect) {
+                    cardToSelect = document.querySelector('.quest-card:not(.opacity-80)');
+                }
+                if (cardToSelect) {
+                    cardToSelect.click();
+                }
+            } catch(e) {
+                console.warn('Error al pre-seleccionar misión:', e);
             }
 
             setTimeout(scrollChatToEnd, 150);
