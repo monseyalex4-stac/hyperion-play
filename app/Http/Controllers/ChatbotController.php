@@ -128,15 +128,28 @@ class ChatbotController extends Controller
 
         $email = 'aventurero_' . time() . '_' . rand(100, 999) . '@hyperionplay.com';
 
+        $weight = isset($validated['weight_kg']) ? (float)$validated['weight_kg'] : 70.0;
+        $height = isset($validated['height_cm']) ? (float)$validated['height_cm'] : 170.0;
+        $age = isset($validated['age']) ? (int)$validated['age'] : 25;
+        $gender = $validated['gender'] ?? 'no_disponible';
+
+        $bodyFat = isset($validated['body_fat_pct']) ? (float)$validated['body_fat_pct'] : null;
+        if ($bodyFat === null && $height > 0) {
+            $heightM = $height / 100.0;
+            $bmi = $weight / ($heightM * $heightM);
+            $sexFactor = ($gender === 'masculino') ? 1.0 : (($gender === 'femenino') ? 0.0 : 0.5);
+            $bodyFat = round(max(5.0, min(50.0, (1.20 * $bmi) + (0.23 * $age) - (10.8 * $sexFactor) - 5.4)), 1);
+        }
+
         $newUser = User::create([
             'name'                   => $validated['name'],
             'email'                  => $email,
             'password'               => bcrypt('secret123'),
-            'age'                    => $validated['age'] ?? 25,
-            'gender'                 => $validated['gender'] ?? 'no_disponible',
-            'weight_kg'              => $validated['weight_kg'] ?? 70.0,
-            'height_cm'              => $validated['height_cm'] ?? 170.0,
-            'body_fat_pct'           => $validated['body_fat_pct'] ?? 18.0,
+            'age'                    => $age,
+            'gender'                 => $gender,
+            'weight_kg'              => $weight,
+            'height_cm'              => $height,
+            'body_fat_pct'           => $bodyFat ?? 18.0,
             'environment'            => $validated['environment'] ?? 'casa_sin_equipo',
             'available_time_minutes' => $validated['available_time_minutes'] ?? 15,
             'injury'                 => $validated['injury'] ?? 'ninguna',

@@ -420,11 +420,11 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-slate-300 font-medium mb-1">Edad</label>
-                        <input type="number" id="nuevo-edad" min="12" max="100" value="25" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-amber-500">
+                        <input type="number" id="nuevo-edad" min="12" max="100" value="25" oninput="calcularGrasaCorporal()" onchange="calcularGrasaCorporal()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-amber-500">
                     </div>
                     <div>
                         <label class="block text-slate-300 font-medium mb-1">Género</label>
-                        <select id="nuevo-genero" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-amber-500">
+                        <select id="nuevo-genero" onchange="calcularGrasaCorporal()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-amber-500">
                             <option value="no_disponible">Prefiero no decir</option>
                             <option value="femenino">Femenino</option>
                             <option value="masculino">Masculino</option>
@@ -435,17 +435,24 @@
                 <div class="grid grid-cols-3 gap-2">
                     <div>
                         <label class="block text-slate-300 font-medium mb-1">Peso (kg)</label>
-                        <input type="number" step="0.5" id="nuevo-peso" value="70" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-white focus:outline-none focus:ring-1 focus:ring-amber-500">
+                        <input type="number" step="0.5" id="nuevo-peso" value="70" oninput="calcularGrasaCorporal()" onchange="calcularGrasaCorporal()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-white focus:outline-none focus:ring-1 focus:ring-amber-500">
                     </div>
                     <div>
                         <label class="block text-slate-300 font-medium mb-1">Altura (cm)</label>
-                        <input type="number" id="nuevo-altura" value="170" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-white focus:outline-none focus:ring-1 focus:ring-amber-500">
+                        <input type="number" id="nuevo-altura" value="170" oninput="calcularGrasaCorporal()" onchange="calcularGrasaCorporal()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-white focus:outline-none focus:ring-1 focus:ring-amber-500">
                     </div>
                     <div>
-                        <label class="block text-slate-300 font-medium mb-1">% Grasa</label>
-                        <input type="number" step="0.5" id="nuevo-grasa" value="18" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-white focus:outline-none focus:ring-1 focus:ring-amber-500">
+                        <label class="block text-slate-300 font-medium mb-1 flex items-center justify-between">
+                            <span>% Grasa</span>
+                            <span class="text-[9px] text-amber-400 font-normal">Auto</span>
+                        </label>
+                        <input type="number" step="0.1" id="nuevo-grasa" value="18" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-white focus:outline-none focus:ring-1 focus:ring-amber-500" title="Calculado automáticamente según peso y altura">
                     </div>
                 </div>
+                <p class="text-[10px] text-slate-400 -mt-1 flex items-center gap-1.5">
+                    <i class="fa-solid fa-wand-magic-sparkles text-amber-400 text-xs"></i>
+                    <span>El % de grasa se calcula solo con tu peso, altura y edad (fórmula Deurenberg). Puedes editarlo si lo prefieres.</span>
+                </p>
 
                 <div>
                     <label class="block text-slate-300 font-medium mb-1">Entorno de Entrenamiento Preferido</label>
@@ -960,9 +967,36 @@
             }
         }
 
+        function calcularGrasaCorporal() {
+            const peso = parseFloat(document.getElementById('nuevo-peso')?.value) || 0;
+            const alturaCm = parseFloat(document.getElementById('nuevo-altura')?.value) || 0;
+            const edad = parseInt(document.getElementById('nuevo-edad')?.value) || 25;
+            const genero = document.getElementById('nuevo-genero')?.value || 'no_disponible';
+
+            if (peso > 0 && alturaCm > 0) {
+                const alturaM = alturaCm / 100;
+                const imc = peso / (alturaM * alturaM);
+
+                // Fórmula clínica de Deurenberg: % Grasa = (1.20 * IMC) + (0.23 * Edad) - (10.8 * Sexo) - 5.4
+                // Sexo: 1 (masculino), 0 (femenino), 0.5 (promedio o no especificado)
+                let sexo = 0.5;
+                if (genero === 'masculino') sexo = 1;
+                if (genero === 'femenino') sexo = 0;
+
+                let grasa = (1.20 * imc) + (0.23 * edad) - (10.8 * sexo) - 5.4;
+                grasa = Math.max(5.0, Math.min(50.0, grasa));
+
+                const inputGrasa = document.getElementById('nuevo-grasa');
+                if (inputGrasa) {
+                    inputGrasa.value = grasa.toFixed(1);
+                }
+            }
+        }
+
         function abrirModalNuevoUsuario() {
             document.getElementById('modal-nuevo-usuario').classList.remove('hidden');
             document.getElementById('nuevo-nombre').focus();
+            calcularGrasaCorporal();
         }
 
         function cerrarModalNuevoUsuario() {
