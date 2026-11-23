@@ -40,18 +40,33 @@ class ChatbotController extends Controller
      */
     protected function resolveUser(Request $request): User
     {
-        $userId = $request->input('user_id');
+        $userId = $request->input('user_id')
+            ?? $request->query('user_id')
+            ?? session('active_user_id')
+            ?? $request->cookie('hyperion_user_id');
+
         if ($userId) {
             $user = User::find($userId);
+            if ($user) {
+                session(['active_user_id' => $user->id]);
+                cookie()->queue('hyperion_user_id', (string) $user->id, 60 * 24 * 30);
+                return $user;
+            }
+        }
+
+        // Si no se encuentra el ID especificado, buscar el último activo en sesión
+        $activeSessionId = session('active_user_id') ?? $request->cookie('hyperion_user_id');
+        if ($activeSessionId) {
+            $user = User::find($activeSessionId);
             if ($user) {
                 return $user;
             }
         }
 
-        $user = User::first();
+        $user = User::latest('updated_at')->first() ?? User::first();
         if (!$user) {
             $user = User::create([
-                'name' => 'Santiago (Aventurero)',
+                'name' => 'Aventurero',
                 'email' => 'aventurero@hyperionplay.com',
                 'password' => bcrypt('password123'),
                 'age' => 24,
@@ -68,6 +83,9 @@ class ChatbotController extends Controller
                 'rpg_title' => 'Recluta de Hierro',
             ]);
         }
+
+        session(['active_user_id' => $user->id]);
+        cookie()->queue('hyperion_user_id', (string) $user->id, 60 * 24 * 30);
 
         return $user;
     }
@@ -194,10 +212,33 @@ class ChatbotController extends Controller
             'completed'     => false,
         ]);
 
+        session(['active_user_id' => $newUser->id]);
+        cookie()->queue('hyperion_user_id', (string) $newUser->id, 60 * 24 * 30);
+
         return response()->json([
             'success'  => true,
             'user'     => $newUser,
             'redirect' => route('hyperion.index', ['user_id' => $newUser->id]),
+        ]);
+    }
+
+    /**
+     * Cambia explícitamente el usuario activo en sesión y cookie.
+     */
+    public function switchUser(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'user_id' => 'required|integer',
+        ]);
+
+        $user = User::findOrFail($validated['user_id']);
+        session(['active_user_id' => $user->id]);
+        cookie()->queue('hyperion_user_id', (string) $user->id, 60 * 24 * 30);
+
+        return response()->json([
+            'status'  => 'success',
+            'mensaje' => "Aventurero activo cambiado a {$user->name}.",
+            'user'    => $user,
         ]);
     }
 

@@ -24,6 +24,7 @@ Route::prefix('api')->group(function () {
     Route::get('/user/profile', [ChatbotController::class, 'getProfile']);
     Route::post('/user/create', [ChatbotController::class, 'createUser']);
     Route::post('/user/update', [ChatbotController::class, 'updateUser']);
+    Route::post('/user/switch', [ChatbotController::class, 'switchUser']);
     Route::post('/workout/complete', [ChatbotController::class, 'completeWorkout']);
     Route::get('/workout/history', [RoutineApiController::class, 'getHistory']);
     Route::post('/workout/history', [RoutineApiController::class, 'saveHistory']);

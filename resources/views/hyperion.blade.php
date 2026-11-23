@@ -661,7 +661,16 @@
 
     <script>
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-        const activeUserId = {{ $user->id }};
+        let activeUserId = {{ $user->id }};
+
+        function getActiveUserId() {
+            const sel = document.getElementById('selector-aventurero');
+            if (sel && sel.value) {
+                return parseInt(sel.value);
+            }
+            return activeUserId;
+        }
+
         let rutinaActual = null;
 
         /**
@@ -753,7 +762,7 @@
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': csrfToken,
                     },
-                    body: JSON.stringify({ message: text, user_id: activeUserId }),
+                    body: JSON.stringify({ message: text, user_id: getActiveUserId() }),
                 });
 
                 const data = await response.json();
@@ -914,7 +923,7 @@
                         'X-CSRF-TOKEN': csrfToken,
                     },
                     body: JSON.stringify({
-                        user_id: activeUserId,
+                        user_id: getActiveUserId(),
                         session_id: (rutinaActual && rutinaActual.sesion_id) ? rutinaActual.sesion_id : null,
                         difficulty_rating: dificultad,
                         fatigue_reported: fatiga,
@@ -972,7 +981,7 @@
             if (elNivel) elNivel.innerText = user.current_level;
 
             // Recalcular nivel y barra
-            fetch('/api/user/profile?user_id=' + activeUserId)
+            fetch('/api/user/profile?user_id=' + getActiveUserId())
                 .then(r => r.json())
                 .then(data => {
                     if (data && data.status === 'success') {
@@ -1096,7 +1105,7 @@
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': csrfToken,
                     },
-                    body: JSON.stringify({ user_id: activeUserId })
+                    body: JSON.stringify({ user_id: getActiveUserId() })
                 });
             } catch (e) {
                 console.warn('Error al reiniciar chat:', e);
@@ -1110,7 +1119,7 @@
                 const savedId = localStorage.getItem('hyperion_user_id');
                 const params = new URLSearchParams(window.location.search);
                 if (savedId && !params.has('user_id') && savedId != activeUserId) {
-                    window.location.replace('/hyperion?user_id=' + savedId);
+                    window.location.replace(window.location.pathname + '?user_id=' + savedId);
                     return;
                 }
                 localStorage.setItem('hyperion_user_id', activeUserId);
@@ -1119,10 +1128,23 @@
             }
         })();
 
-        function cambiarUsuario(userId) {
+        async function cambiarUsuario(userId) {
             if (!userId) return;
-            try { localStorage.setItem('hyperion_user_id', userId); } catch (e) {}
-            window.location.href = '/hyperion?user_id=' + userId;
+            try {
+                localStorage.setItem('hyperion_user_id', userId);
+                activeUserId = parseInt(userId);
+                await fetch('/api/user/switch', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                    body: JSON.stringify({ user_id: parseInt(userId) })
+                });
+            } catch (e) {
+                console.warn('Error al cambiar usuario:', e);
+            }
+            window.location.href = window.location.pathname + '?user_id=' + userId;
         }
 
         function abrirModalEditarUsuario() {
@@ -1173,7 +1195,7 @@
             event.preventDefault();
 
             const payload = {
-                user_id: activeUserId,
+                user_id: getActiveUserId(),
                 name: document.getElementById('edit-nombre').value.trim(),
                 age: parseInt(document.getElementById('edit-edad').value) || 25,
                 gender: document.getElementById('edit-genero').value,

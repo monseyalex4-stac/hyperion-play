@@ -329,5 +329,13 @@ class HyperionPlayTest extends TestCase
 
         $this->assertCount(0, $this->user->fresh()->chatMessages);
         $this->assertCount(2, $user2->fresh()->chatMessages); // El historial de usuario 2 permanece intacto
+
+        // Probar cambio explícito de usuario activo (switchUser)
+        $respSwitch = $this->postJson('/api/user/switch', [
+            'user_id' => $user2->id,
+        ]);
+        $respSwitch->assertStatus(200);
+        $respSwitch->assertJsonPath('status', 'success');
+        $this->assertEquals($user2->id, session('active_user_id'));
     }
 }
