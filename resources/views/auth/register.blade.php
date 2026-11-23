@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Crear Aventurero | Hyperion Play</title>
+    <link rel="icon" type="image/png" href="/images/logo.png">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -32,9 +33,7 @@
         
         <!-- Logo y Título -->
         <div class="text-center space-y-2">
-            <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-600 to-amber-400 text-slate-950 text-2xl shadow-lg shadow-amber-500/20 mb-1">
-                <i class="fa-solid fa-user-plus"></i>
-            </div>
+            <img src="/images/logo.png" alt="Hyperion Play Logo" class="w-16 h-16 object-contain mx-auto mb-2 rounded-2xl border border-amber-500/30 bg-slate-900 p-1 shadow-lg shadow-amber-500/10">
             <h1 class="font-cinzel font-bold text-2xl text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-amber-500 tracking-wider">
                 FORJA TU LEYENDA
             </h1>
@@ -369,9 +368,7 @@
             <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
                 <div class="md:col-span-5 space-y-4">
                     <div class="w-12 h-12 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center shadow-md">
-                        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center">
-                            <i class="fa-solid fa-shield-halved text-slate-950 text-sm"></i>
-                        </div>
+                        <img src="/images/logo.png" alt="Hyperion Play" class="w-10 h-10 object-contain rounded-lg p-0.5">
                     </div>
                     <div>
                         <h2 class="text-2xl sm:text-3xl font-normal text-white tracking-tight">

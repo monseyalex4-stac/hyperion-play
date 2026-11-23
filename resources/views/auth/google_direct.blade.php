@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Iniciar sesión con Google | Hyperion Play</title>
+    <link rel="icon" type="image/png" href="/images/logo.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -42,9 +43,7 @@
             <!-- Columna Izquierda: Logo y Título -->
             <div class="md:col-span-5 space-y-4">
                 <div class="w-12 h-12 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center shadow-md">
-                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center">
-                        <i class="fa-solid fa-shield-halved text-slate-950 text-sm"></i>
-                    </div>
+                    <img src="/images/logo.png" alt="Hyperion Play" class="w-10 h-10 object-contain rounded-lg p-0.5">
                 </div>
                 <div>
                     <h1 class="text-2xl sm:text-3xl font-normal text-white tracking-tight">

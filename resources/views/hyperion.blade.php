@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>HYPERION PLAY — Asistente de Entrenamiento Físico RPG</title>
+    <link rel="icon" type="image/png" href="/images/logo.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -59,9 +60,7 @@
     <header class="border-b border-amber-500/20 bg-slate-950/80 backdrop-blur sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
             <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-lg bg-gradient-to-tr from-amber-600 to-amber-400 flex items-center justify-center text-slate-950 shadow-lg shadow-amber-500/20">
-                    <i class="fa-solid fa-khanda text-xl"></i>
-                </div>
+                <img src="/images/logo.png" alt="Hyperion Play Logo" class="w-11 h-11 object-contain rounded-xl border border-amber-500/30 bg-slate-900 p-0.5 shadow-md shadow-amber-500/20">
                 <div>
                     <span class="font-rpg text-xl font-bold tracking-wider text-amber-400 glow-amber">HYPERION PLAY</span>
                     <span class="text-xs block text-slate-400">Titán Mentor & Motor RAG de Entrenamiento Físico</span>
@@ -225,7 +224,7 @@
                         <!-- Mensaje Inicial de Hyperion -->
                         <div class="chat-bubble-hyperion rounded-xl p-4 max-w-[92%] sm:max-w-[85%]">
                             <div class="flex items-center space-x-2 mb-1.5 text-xs text-amber-400 font-semibold">
-                                <i class="fa-solid fa-shield-halved"></i>
+                                <img src="/images/logo.png" alt="Hyperion" class="w-4 h-4 object-contain rounded inline-block">
                                 <span>HYPERION</span>
                             </div>
                             <div class="text-sm leading-relaxed text-slate-200">
@@ -241,7 +240,7 @@
                             @if($msg->sender === 'hyperion')
                                 <div class="chat-bubble-hyperion rounded-xl p-4 max-w-[92%] sm:max-w-[85%]">
                                     <div class="flex items-center space-x-2 mb-1.5 text-xs text-amber-400 font-semibold">
-                                        <i class="fa-solid fa-shield-halved"></i>
+                                        <img src="/images/logo.png" alt="Hyperion" class="w-4 h-4 object-contain rounded inline-block">
                                         <span>HYPERION</span>
                                     </div>
                                     <div class="text-sm leading-relaxed text-slate-200 whitespace-pre-line">{{ $msg->message }}</div>
@@ -824,7 +823,7 @@
                 div.className = 'chat-bubble-hyperion rounded-xl p-4 max-w-[92%] sm:max-w-[85%]';
                 div.innerHTML = `
                     <div class="flex items-center space-x-2 mb-1.5 text-xs text-amber-400 font-semibold">
-                        <i class="fa-solid fa-shield-halved"></i>
+                        <img src="/images/logo.png" alt="Hyperion" class="w-4 h-4 object-contain rounded inline-block">
                         <span>HYPERION</span>
                     </div>
                     <div class="text-sm leading-relaxed text-slate-200 whitespace-pre-line">${textoLimpio}</div>
