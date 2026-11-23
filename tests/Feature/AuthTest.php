@@ -181,9 +181,9 @@ class AuthTest extends TestCase
         $response = $this->get('/auth/google/direct');
 
         $response->assertStatus(200);
-        $response->assertSee('Acceso Directo con Google');
-        $response->assertSee('⚡ Entrar Directo con Google (1 Clic)');
-        $response->assertSee('Correo de Google (@gmail.com)');
+        $response->assertSee('Acceso con Cuenta Real de Google');
+        $response->assertSee('Abrir Ventana Oficial de Google');
+        $response->assertSee('Tu Correo Real de Google (@gmail.com)');
     }
 
     /**

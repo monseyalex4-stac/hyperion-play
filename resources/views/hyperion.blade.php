@@ -126,11 +126,12 @@
                 <!-- Perfil & Rango -->
                 <div class="flex items-center space-x-4 md:border-r border-slate-800 pr-4">
                     <div class="relative">
-                        <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-amber-500/20 to-slate-800 border-2 border-amber-500/50 flex items-center justify-center text-amber-400 text-2xl font-rpg font-bold">
-                            <span id="hud-nivel-icon">{{ $user->current_level }}</span>
+                        <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-amber-500/20 to-slate-800 border-2 border-amber-500/50 flex items-center justify-center text-amber-400 text-2xl font-rpg font-bold overflow-hidden shadow-md">
+                            <img id="hud-avatar-img" src="{{ $user->avatar }}" alt="{{ $user->name }}" class="w-full h-full object-cover {{ empty($user->avatar) ? 'hidden' : '' }}">
+                            <span id="hud-nivel-icon" class="{{ !empty($user->avatar) ? 'hidden' : '' }}">{{ $user->current_level }}</span>
                         </div>
-                        <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-amber-500 text-slate-950 rounded-full flex items-center justify-center text-[10px] font-bold">
-                            Lv
+                        <div class="absolute -bottom-1 -right-1 px-1.5 h-5 bg-amber-500 text-slate-950 rounded-full flex items-center justify-center text-[10px] font-bold shadow">
+                            Lv <span id="hud-nivel-badge">{{ $user->current_level }}</span>
                         </div>
                     </div>
                     <div class="flex-1 min-w-0">
@@ -723,6 +724,8 @@
     <script>
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         let activeUserId = {{ $user->id }};
+        let activeUserName = @json($user->name);
+        let activeUserAvatar = @json($user->avatar);
 
         function getActiveUserId() {
             const sel = document.getElementById('selector-aventurero');
@@ -794,10 +797,13 @@
                 }, 40);
             } else {
                 div.className = 'chat-bubble-user rounded-xl p-4 max-w-[92%] sm:max-w-[85%] ml-auto';
+                const avatarMarkup = activeUserAvatar
+                    ? `<img src="${activeUserAvatar}" alt="Avatar" class="w-4 h-4 rounded-full object-cover border border-sky-400">`
+                    : `<i class="fa-solid fa-user"></i>`;
                 div.innerHTML = `
                     <div class="flex items-center justify-end space-x-2 mb-1.5 text-xs text-sky-400 font-semibold">
-                        <span>Tú (Aventurero)</span>
-                        <i class="fa-solid fa-user"></i>
+                        <span>Tú (${activeUserName || 'Aventurero'})</span>
+                        ${avatarMarkup}
                     </div>
                     <div class="text-sm leading-relaxed text-slate-200 whitespace-pre-line">${texto}</div>
                 `;
@@ -1026,6 +1032,8 @@
         // Actualizar barra de XP, nivel y datos del HUD
         function actualizarHUD(user) {
             if (!user) return;
+            if (user.name) activeUserName = user.name;
+            if (user.avatar) activeUserAvatar = user.avatar;
             const elNombre = document.getElementById('hud-nombre');
             if (elNombre) elNombre.innerText = user.name;
 
@@ -1040,6 +1048,18 @@
 
             const elNivel = document.getElementById('hud-nivel-icon');
             if (elNivel) elNivel.innerText = user.current_level;
+
+            const elBadge = document.getElementById('hud-nivel-badge');
+            if (elBadge) elBadge.innerText = user.current_level;
+
+            if (user.avatar) {
+                const hudAvatarImg = document.getElementById('hud-avatar-img');
+                if (hudAvatarImg) {
+                    hudAvatarImg.src = user.avatar;
+                    hudAvatarImg.classList.remove('hidden');
+                }
+                if (elNivel) elNivel.classList.add('hidden');
+            }
 
             // Recalcular nivel y barra
             fetch('/api/user/profile?user_id=' + getActiveUserId())

@@ -205,12 +205,13 @@ class AuthController extends Controller
     }
 
     /**
-     * Procesa el acceso directo con Google (con 1 clic o con email personalizado).
+     * Procesa el acceso directo con Google (con email y foto real personalizada).
      */
     public function processGoogleDirect(Request $request): RedirectResponse
     {
         $email = trim($request->input('email', ''));
         $name = trim($request->input('name', ''));
+        $avatar = trim($request->input('avatar', ''));
 
         // Si se envió vacío (acceso rápido instantáneo 1 clic)
         if (empty($email)) {
@@ -225,7 +226,11 @@ class AuthController extends Controller
             }
         }
 
-        $avatar = 'https://lh3.googleusercontent.com/a/default-user=s96-c';
+        // Si no proveyó avatar manual, intentar avatar dinámico de Google o fallback oficial
+        if (empty($avatar)) {
+            $avatar = 'https://unavatar.io/google/' . urlencode($email) . '?fallback=' . urlencode('https://lh3.googleusercontent.com/a/default-user=s96-c');
+        }
+
         $googleId = 'google_direct_' . md5($email);
 
         $user = User::where('email', $email)
@@ -236,7 +241,7 @@ class AuthController extends Controller
             if (empty($user->google_id)) {
                 $user->google_id = $googleId;
             }
-            if (empty($user->avatar)) {
+            if (!empty($avatar)) {
                 $user->avatar = $avatar;
             }
             $user->save();
@@ -285,16 +290,28 @@ class AuthController extends Controller
     /**
      * Redirige al flujo de autenticación de Google OAuth o a Acceso Directo con Google.
      */
-    public function googleRedirect(): RedirectResponse
+    public function googleRedirect(Request $request): RedirectResponse
     {
-        $clientId = config('services.google.client_id');
-        $redirectUri = config('services.google.redirect');
+        $clientId = $request->input('client_id')
+            ?? session('google_client_id')
+            ?? config('services.google.client_id');
+        $clientSecret = $request->input('client_secret')
+            ?? session('google_client_secret')
+            ?? config('services.google.client_secret');
+
+        if ($request->filled('client_id')) {
+            session([
+                'google_client_id'     => $clientId,
+                'google_client_secret' => $clientSecret,
+            ]);
+        }
 
         if (empty($clientId)) {
             // Acceso directo con Google sin necesidad de configurar credenciales Cloud
             return redirect()->route('auth.google.direct');
         }
 
+        $redirectUri = config('services.google.redirect');
         $state = Str::random(40);
         session(['google_oauth_state' => $state]);
 
@@ -326,8 +343,8 @@ class AuthController extends Controller
             return redirect()->route('login')->withErrors(['google' => 'No se recibió autorización de Google.']);
         }
 
-        $clientId = config('services.google.client_id');
-        $clientSecret = config('services.google.client_secret');
+        $clientId = session('google_client_id') ?? config('services.google.client_id');
+        $clientSecret = session('google_client_secret') ?? config('services.google.client_secret');
         $redirectUri = url(config('services.google.redirect'));
 
         // 1. Intercambiar code por Access Token
@@ -365,7 +382,7 @@ class AuthController extends Controller
 
         if ($user) {
             $user->google_id = $googleId;
-            if ($picture && empty($user->avatar)) {
+            if ($picture) {
                 $user->avatar = $picture;
             }
             $user->save();
