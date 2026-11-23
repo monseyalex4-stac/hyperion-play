@@ -160,4 +160,62 @@ class AuthTest extends TestCase
         $this->assertNotNull($user->google_id);
         $this->assertEquals('https://lh3.googleusercontent.com/a/avatar123', $user->avatar);
     }
+
+    /**
+     * Prueba que el redirect de Google redirija a Acceso Directo si no hay credenciales en .env.
+     */
+    public function test_google_redirect_forwards_to_direct_access_without_client_id(): void
+    {
+        config(['services.google.client_id' => '']);
+
+        $response = $this->get('/auth/google/redirect');
+
+        $response->assertRedirect('/auth/google/direct');
+    }
+
+    /**
+     * Prueba que la página dedicada de Acceso Directo con Google cargue correctamente.
+     */
+    public function test_google_direct_page_renders_successfully(): void
+    {
+        $response = $this->get('/auth/google/direct');
+
+        $response->assertStatus(200);
+        $response->assertSee('Acceso Directo con Google');
+        $response->assertSee('⚡ Entrar Directo con Google (1 Clic)');
+        $response->assertSee('Correo de Google (@gmail.com)');
+    }
+
+    /**
+     * Prueba el login instantáneo con 1 clic en Acceso Directo con Google.
+     */
+    public function test_google_direct_post_authenticates_instant_one_click(): void
+    {
+        $response = $this->post('/auth/google/direct');
+
+        $this->assertAuthenticated();
+        $user = auth()->user();
+        $this->assertNotNull($user);
+        $this->assertStringContainsString('@gmail.com', $user->email);
+        $this->assertNotNull($user->google_id);
+        $response->assertRedirect('/hyperion?user_id=' . $user->id);
+    }
+
+    /**
+     * Prueba el login en Acceso Directo con Google con correo y alias personalizados.
+     */
+    public function test_google_direct_post_authenticates_with_custom_gmail(): void
+    {
+        $response = $this->post('/auth/google/direct', [
+            'email' => 'valeria.direct@gmail.com',
+            'name'  => 'Valeria Guerrera',
+        ]);
+
+        $this->assertAuthenticated();
+        $user = User::where('email', 'valeria.direct@gmail.com')->first();
+        $this->assertNotNull($user);
+        $this->assertEquals('Valeria Guerrera', $user->name);
+        $this->assertStringStartsWith('google_direct_', $user->google_id);
+        $response->assertRedirect('/hyperion?user_id=' . $user->id);
+    }
 }

@@ -14,8 +14,10 @@ Route::get('/register', [AuthController::class, 'showRegister'])->name('register
 Route::post('/register', [AuthController::class, 'register'])->name('register.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-// Google OAuth
+// Google OAuth & Acceso Directo
 Route::get('/auth/google/redirect', [AuthController::class, 'googleRedirect'])->name('auth.google.redirect');
+Route::get('/auth/google/direct', [AuthController::class, 'showGoogleDirect'])->name('auth.google.direct');
+Route::post('/auth/google/direct', [AuthController::class, 'processGoogleDirect'])->name('auth.google.direct.post');
 Route::get('/auth/google/callback', [AuthController::class, 'googleCallback'])->name('auth.google.callback');
 Route::post('/auth/google/one-click', [AuthController::class, 'googleOneClick'])->name('auth.google.one-click');
 

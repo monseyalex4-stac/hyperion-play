@@ -193,7 +193,97 @@ class AuthController extends Controller
     }
 
     /**
-     * Redirige al flujo de autenticación de Google OAuth.
+     * Muestra la pantalla dedicada de Acceso Directo con Google.
+     */
+    public function showGoogleDirect(): View|RedirectResponse
+    {
+        if (Auth::check()) {
+            return redirect()->route('hyperion.index');
+        }
+
+        return view('auth.google_direct');
+    }
+
+    /**
+     * Procesa el acceso directo con Google (con 1 clic o con email personalizado).
+     */
+    public function processGoogleDirect(Request $request): RedirectResponse
+    {
+        $email = trim($request->input('email', ''));
+        $name = trim($request->input('name', ''));
+
+        // Si se envió vacío (acceso rápido instantáneo 1 clic)
+        if (empty($email)) {
+            $email = 'aventurero.google.' . Str::lower(Str::random(6)) . '@gmail.com';
+        }
+
+        if (empty($name)) {
+            $name = explode('@', $email)[0];
+            $name = ucfirst(preg_replace('/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ]/', '', $name));
+            if (empty($name)) {
+                $name = 'Aventurero Google';
+            }
+        }
+
+        $avatar = 'https://lh3.googleusercontent.com/a/default-user=s96-c';
+        $googleId = 'google_direct_' . md5($email);
+
+        $user = User::where('email', $email)
+            ->orWhere('google_id', $googleId)
+            ->first();
+
+        if ($user) {
+            if (empty($user->google_id)) {
+                $user->google_id = $googleId;
+            }
+            if (empty($user->avatar)) {
+                $user->avatar = $avatar;
+            }
+            $user->save();
+        } else {
+            $user = User::create([
+                'name'                   => $name,
+                'email'                  => $email,
+                'google_id'              => $googleId,
+                'avatar'                 => $avatar,
+                'password'               => Hash::make(Str::random(32)),
+                'age'                    => 25,
+                'gender'                 => 'no_disponible',
+                'weight_kg'              => 70.0,
+                'height_cm'              => 170.0,
+                'body_fat_pct'           => 18.0,
+                'environment'            => 'casa_sin_equipo',
+                'available_time_minutes' => 15,
+                'injury'                 => 'ninguna',
+                'fitness_goal'           => 'resistencia',
+                'archetype'              => 'titan_agil',
+                'current_level'          => 1,
+                'current_xp'             => 0,
+                'rpg_title'              => 'Aspirante',
+                'interview_completed'    => false,
+            ]);
+
+            UserQuest::create([
+                'user_id'       => $user->id,
+                'quest_key'     => 'mision_calibracion_' . $user->id,
+                'title'         => 'El Despertar del Guerrero',
+                'description'   => 'Completa tu primera sesión guiada por Hyperion',
+                'target_count'  => 1,
+                'current_count' => 0,
+                'reward_xp'     => 30,
+                'completed'     => false,
+            ]);
+        }
+
+        Auth::login($user, true);
+        session(['active_user_id' => $user->id]);
+        cookie()->queue('hyperion_user_id', (string) $user->id, 60 * 24 * 30);
+
+        return redirect()->route('hyperion.index', ['user_id' => $user->id]);
+    }
+
+    /**
+     * Redirige al flujo de autenticación de Google OAuth o a Acceso Directo con Google.
      */
     public function googleRedirect(): RedirectResponse
     {
@@ -201,11 +291,8 @@ class AuthController extends Controller
         $redirectUri = config('services.google.redirect');
 
         if (empty($clientId)) {
-            // Si las credenciales no están configuradas en .env aún, mostrar vista amigable
-            return redirect()->route('login')->with(
-                'info',
-                'Para habilitar el login directo con Google, añade GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET en tu archivo .env. También puedes usar el registro rápido de un clic.'
-            );
+            // Acceso directo con Google sin necesidad de configurar credenciales Cloud
+            return redirect()->route('auth.google.direct');
         }
 
         $state = Str::random(40);
