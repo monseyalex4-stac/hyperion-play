@@ -168,6 +168,45 @@ class ChatbotController extends Controller
     }
 
     /**
+     * Actualiza los datos del usuario activo (ej: cambiar nombre).
+     */
+    public function updateUser(Request $request): JsonResponse
+    {
+        $user = $this->resolveUser($request);
+
+        $validated = $request->validate([
+            'name'        => 'nullable|string|max:100',
+            'age'         => 'nullable|integer|min:12|max:100',
+            'environment' => 'nullable|string|in:casa_sin_equipo,casa_basico,gimnasio',
+            'injury'      => 'nullable|string',
+        ]);
+
+        if (!empty($validated['name'])) {
+            $user->name = $validated['name'];
+        }
+        if (!empty($validated['age'])) {
+            $user->age = $validated['age'];
+        }
+        if (!empty($validated['environment'])) {
+            $user->environment = $validated['environment'];
+        }
+        if (isset($validated['injury'])) {
+            $user->injury = $validated['injury'];
+        }
+
+        $user->save();
+
+        session(['active_user_id' => $user->id]);
+        cookie()->queue('hyperion_user_id', (string) $user->id, 60 * 24 * 30);
+
+        return response()->json([
+            'status'  => 'success',
+            'mensaje' => 'Perfil actualizado correctamente.',
+            'user'    => $user,
+        ]);
+    }
+
+    /**
      * Obtiene el perfil actual del usuario y su estado RPG.
      */
     public function getProfile(Request $request): JsonResponse

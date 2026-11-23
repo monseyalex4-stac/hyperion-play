@@ -104,10 +104,16 @@
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center justify-between gap-2 mb-1">
                             <span class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Aventurero Activo</span>
-                            <button onclick="abrirModalNuevoUsuario()" class="text-[10px] px-2 py-0.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-lg transition font-medium flex items-center gap-1">
-                                <i class="fa-solid fa-user-plus text-[9px]"></i>
-                                <span>Nuevo</span>
-                            </button>
+                            <div class="flex items-center gap-1">
+                                <button onclick="editarNombreUsuario()" title="Renombrar este perfil" class="text-[10px] px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-lg transition font-medium flex items-center gap-1">
+                                    <i class="fa-solid fa-pen text-[9px]"></i>
+                                    <span>Editar</span>
+                                </button>
+                                <button onclick="abrirModalNuevoUsuario()" class="text-[10px] px-2 py-0.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-lg transition font-medium flex items-center gap-1">
+                                    <i class="fa-solid fa-user-plus text-[9px]"></i>
+                                    <span>Nuevo</span>
+                                </button>
+                            </div>
                         </div>
                         <div class="flex items-center gap-2">
                             <select id="selector-aventurero" onchange="cambiarUsuario(this.value)" class="w-full bg-slate-900 border border-slate-700 hover:border-amber-500/50 text-white font-bold text-xs rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-amber-500">
@@ -907,10 +913,51 @@
             document.getElementById('rutina-contenido').classList.add('hidden');
         }
 
-        // Gestión de múltiples usuarios / perfiles
+        // Gestión de persistencia y perfiles de aventurero
+        (function recordarAventurero() {
+            try {
+                const savedId = localStorage.getItem('hyperion_user_id');
+                const params = new URLSearchParams(window.location.search);
+                if (savedId && !params.has('user_id') && savedId != activeUserId) {
+                    window.location.replace('/hyperion?user_id=' + savedId);
+                    return;
+                }
+                localStorage.setItem('hyperion_user_id', activeUserId);
+            } catch (e) {
+                console.warn(e);
+            }
+        })();
+
         function cambiarUsuario(userId) {
             if (!userId) return;
+            try { localStorage.setItem('hyperion_user_id', userId); } catch (e) {}
             window.location.href = '/hyperion?user_id=' + userId;
+        }
+
+        async function editarNombreUsuario() {
+            const nuevo = prompt("Escribe tu nombre para personalizar tu perfil:", "{{ $user->name }}");
+            if (!nuevo || !nuevo.trim() || nuevo.trim() === "{{ $user->name }}") return;
+
+            try {
+                const response = await fetch('/api/user/update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                    body: JSON.stringify({ user_id: activeUserId, name: nuevo.trim() })
+                });
+
+                const data = await response.json();
+                if (data.status === 'success') {
+                    window.location.reload();
+                } else {
+                    alert(data.mensaje || 'Error al actualizar el nombre.');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error al conectar con el servidor.');
+            }
         }
 
         function abrirModalNuevoUsuario() {
@@ -946,6 +993,7 @@
 
                 const data = await response.json();
                 if (data.success && data.redirect) {
+                    try { localStorage.setItem('hyperion_user_id', data.user.id); } catch (e) {}
                     window.location.href = data.redirect;
                 } else {
                     alert(data.message || 'Error al crear el nuevo aventurero.');

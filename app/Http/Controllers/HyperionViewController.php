@@ -18,16 +18,24 @@ class HyperionViewController extends Controller
 
     public function index(Request $request): View
     {
+        // 1. Prioridad: Parámetro en URL (?user_id=X)
         $userId = $request->query('user_id');
+
+        // 2. Segunda prioridad: Sesión o Cookie del usuario (recuerda quién estaba navegando)
+        if (!$userId) {
+            $userId = session('active_user_id') ?? $request->cookie('hyperion_user_id');
+        }
+
         $user = $userId ? User::find($userId) : null;
 
+        // 3. Fallback: El último usuario activo o el primero
         if (!$user) {
-            $user = User::first();
+            $user = User::latest('updated_at')->first() ?? User::first();
         }
 
         if (!$user) {
             $user = User::create([
-                'name' => 'Santiago (Aventurero)',
+                'name' => 'Aventurero',
                 'email' => 'aventurero@hyperionplay.com',
                 'password' => bcrypt('password123'),
                 'age' => 24,
@@ -44,6 +52,10 @@ class HyperionViewController extends Controller
                 'rpg_title' => 'Recluta de Hierro',
             ]);
         }
+
+        // Persistir el usuario activo en sesión y cookie (por 30 días)
+        session(['active_user_id' => $user->id]);
+        cookie()->queue('hyperion_user_id', (string) $user->id, 60 * 24 * 30);
 
         $allUsers = User::orderBy('id', 'asc')->get();
         $user->load('quests');
