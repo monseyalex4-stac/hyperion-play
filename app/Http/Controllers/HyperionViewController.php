@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Services\GamificationRpgService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class HyperionViewController extends Controller
 {
@@ -21,16 +22,21 @@ class HyperionViewController extends Controller
         // 1. Prioridad: Parámetro en URL (?user_id=X)
         $userId = $request->query('user_id');
 
-        // 2. Segunda prioridad: Sesión o Cookie del usuario (recuerda quién estaba navegando)
-        if (!$userId) {
-            $userId = session('active_user_id') ?? $request->cookie('hyperion_user_id');
-        }
+        // 2. Si el usuario está autenticado y no pide otro id en URL
+        if (!$userId && Auth::check()) {
+            $user = Auth::user();
+        } else {
+            // 3. Prioridad: Sesión o Cookie del usuario
+            if (!$userId) {
+                $userId = session('active_user_id') ?? $request->cookie('hyperion_user_id');
+            }
 
-        $user = $userId ? User::find($userId) : null;
+            $user = $userId ? User::find($userId) : null;
 
-        // 3. Fallback: El último usuario activo o el primero
-        if (!$user) {
-            $user = User::latest('updated_at')->first() ?? User::first();
+            // 4. Fallback: El último usuario activo o el primero
+            if (!$user) {
+                $user = User::latest('updated_at')->first() ?? User::first();
+            }
         }
 
         if (!$user) {

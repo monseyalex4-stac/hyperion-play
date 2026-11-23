@@ -5,6 +5,19 @@ use App\Http\Controllers\DatasetController;
 use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\HyperionViewController;
 use App\Http\Controllers\RoutineApiController;
+use App\Http\Controllers\AuthController;
+
+// Autenticación: Login, Registro, Logout y Google OAuth
+Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
+Route::post('/register', [AuthController::class, 'register'])->name('register.post');
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+// Google OAuth
+Route::get('/auth/google/redirect', [AuthController::class, 'googleRedirect'])->name('auth.google.redirect');
+Route::get('/auth/google/callback', [AuthController::class, 'googleCallback'])->name('auth.google.callback');
+Route::post('/auth/google/one-click', [AuthController::class, 'googleOneClick'])->name('auth.google.one-click');
 
 // Página principal apunta directamente a Hyperion Play
 Route::get('/', [HyperionViewController::class, 'index'])->name('home');

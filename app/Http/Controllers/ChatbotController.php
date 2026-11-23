@@ -12,6 +12,7 @@ use App\Services\GamificationRpgService;
 use App\Services\RoutineGeneratorService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class ChatbotController extends Controller
 {
@@ -154,6 +155,7 @@ class ChatbotController extends Controller
     {
         $validated = $request->validate([
             'name'                   => 'required|string|max:100',
+            'password'               => 'nullable|string|min:4|max:100',
             'age'                    => 'nullable|integer|min:12|max:100',
             'gender'                 => 'nullable|string',
             'weight_kg'              => 'nullable|numeric|min:30|max:300',
@@ -180,10 +182,12 @@ class ChatbotController extends Controller
             $bodyFat = round(max(5.0, min(50.0, (1.20 * $bmi) + (0.23 * $age) - (10.8 * $sexFactor) - 5.4)), 1);
         }
 
+        $passwordToHash = !empty($validated['password']) ? $validated['password'] : 'secret123';
+
         $newUser = User::create([
             'name'                   => $validated['name'],
             'email'                  => $email,
-            'password'               => bcrypt('secret123'),
+            'password'               => bcrypt($passwordToHash),
             'age'                    => $age,
             'gender'                 => $gender,
             'weight_kg'              => $weight,
@@ -212,6 +216,7 @@ class ChatbotController extends Controller
             'completed'     => false,
         ]);
 
+        Auth::login($newUser, true);
         session(['active_user_id' => $newUser->id]);
         cookie()->queue('hyperion_user_id', (string) $newUser->id, 60 * 24 * 30);
 
@@ -232,6 +237,7 @@ class ChatbotController extends Controller
         ]);
 
         $user = User::findOrFail($validated['user_id']);
+        Auth::login($user, true);
         session(['active_user_id' => $user->id]);
         cookie()->queue('hyperion_user_id', (string) $user->id, 60 * 24 * 30);
 
