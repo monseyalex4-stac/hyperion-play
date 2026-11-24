@@ -9,13 +9,16 @@ class ConversationalChatbotService
 {
     protected RoutineGeneratorService $routineGenerator;
     protected GamificationRpgService $rpgService;
+    protected ChatbotTrainingService $trainingService;
 
     public function __construct(
         RoutineGeneratorService $routineGenerator,
-        GamificationRpgService $rpgService
+        GamificationRpgService $rpgService,
+        ?ChatbotTrainingService $trainingService = null
     ) {
         $this->routineGenerator = $routineGenerator;
         $this->rpgService = $rpgService;
+        $this->trainingService = $trainingService ?? new ChatbotTrainingService();
     }
 
     /**
@@ -25,14 +28,40 @@ class ConversationalChatbotService
     {
         $mensajeLimpio = mb_strtolower(trim($mensaje));
 
-        // 1. Guardrail de Emergencia Médica Inmediata (REG-SEG-05)
-        if ($this->detectarEmergenciaMedica($mensajeLimpio)) {
+        // 1. Guardrail de Emergencia Médica Inmediata (REG-SEG-05 + alarmas entrenadas)
+        $emergencia = $this->detectarEmergenciaMedicaDetalle($mensajeLimpio);
+        if ($emergencia['detected']) {
+            $textoAlerta = !empty($emergencia['custom_response'])
+                ? $emergencia['custom_response']
+                : "🚨 ¡ALTO, AVENTURERO! Tu seguridad es primordial.\n\nHe detectado que refieres dolor agudo, mareos o molestia torácica. Suspende de inmediato cualquier actividad física, siéntate en un lugar fresco y seguro, y acude o llama a un profesional de la salud o servicio de urgencias médicas. Hyperion no prescribirá ejercicios bajo estas circunstancias.";
+
             return $this->formatearRespuesta([
                 'emisor' => 'hyperion',
                 'tipo' => 'alerta_emergencia',
-                'texto' => "🚨 ¡ALTO, AVENTURERO! Tu seguridad es primordial.\n\nHe detectado que refieres dolor agudo, mareos o molestia torácica. Suspende de inmediato cualquier actividad física, siéntate en un lugar fresco y seguro, y acude o llama a un profesional de la salud o servicio de urgencias médicas. Hyperion no prescribirá ejercicios bajo estas circunstancias.",
+                'texto' => $textoAlerta,
                 'rutina' => null,
                 'perfil_actualizado' => false,
+                'entrenamiento_aplicado' => $emergencia['source'] === 'manual' ? [
+                    'tipo' => 'alarma',
+                    'trigger' => $emergencia['keyword'],
+                ] : null,
+            ]);
+        }
+
+        // 1.5 Respuestas Personalizadas Entrenadas Manualmente (Q&A)
+        $qaMatch = $this->trainingService->findQaMatch($mensaje);
+        if ($qaMatch !== null) {
+            return $this->formatearRespuesta([
+                'emisor' => 'hyperion',
+                'tipo' => 'respuesta_entrenada',
+                'texto' => $qaMatch['response_text'],
+                'rutina' => null,
+                'perfil_actualizado' => false,
+                'entrenamiento_aplicado' => [
+                    'tipo' => 'qa',
+                    'id' => $qaMatch['id'],
+                    'trigger' => $qaMatch['trigger_matched'],
+                ],
             ]);
         }
 
@@ -51,7 +80,7 @@ class ConversationalChatbotService
             return $this->formatearRespuesta($this->generarRespuestaFinalizacion($user, $mensajeLimpio));
         }
 
-        // 5. Extracción de Entidades y Parámetros en Lenguaje Natural (HU #7)
+        // 5. Extracción de Entidades y Parámetros en Lenguaje Natural (HU #7 + Vocabulario NLP entrenado)
         $entidades = $this->extraerEntidadesNLP($mensajeLimpio);
         $huboCambios = false;
 
@@ -80,7 +109,7 @@ class ConversationalChatbotService
         }
 
         // 6. Si el usuario pide generar una rutina o ya respondió la entrevista
-        if ($this->esSolicitudRutina($mensajeLimpio) || $this->tieneParametrosSuficientes($user)) {
+        if ($this->esSolicitudRutina($mensajeLimpio, $entidades) || $this->tieneParametrosSuficientes($user)) {
             // Asignar valores por defecto conservadores si algún dato fue omitido (HU #7)
             $this->aplicarValoresPorDefectoConservadores($user);
 
@@ -334,6 +363,9 @@ class ConversationalChatbotService
             'cardio'       => ['db' => ['cardiovascular system'], 'label' => 'Cardio'],
         ];
 
+        $dinamicos = $this->trainingService->getDynamicSynonyms();
+        $normText = $this->trainingService->normalizeText($text);
+
         foreach ($mapaMusculos as $keyword => $info) {
             if (preg_match('/\b' . preg_quote($keyword, '/') . '\b/u', $text)) {
                 $resultado['musculos'] = array_merge($resultado['musculos'], $info['db']);
@@ -342,9 +374,19 @@ class ConversationalChatbotService
                 }
             }
         }
+
+        // Vocabulario NLP entrenado manualmente para músculos / modismos
+        foreach ($dinamicos['musculo'] as $normKw => $info) {
+            if (preg_match('/\b' . preg_quote($normKw, '/') . 's?\b/u', $normText) || str_contains($normText, $normKw)) {
+                $resultado['musculos'] = array_merge($resultado['musculos'], $info['db']);
+                if (!in_array($info['label'], $resultado['nombres_musculos'])) {
+                    $resultado['nombres_musculos'][] = $info['label'];
+                }
+            }
+        }
         $resultado['musculos'] = array_values(array_unique($resultado['musculos']));
 
-        // 3. Entorno
+        // 3. Entorno (reglas base + vocabulario entrenado)
         if (str_contains($text, 'gimnasio') || str_contains($text, 'gym') || str_contains($text, 'maquinas') || str_contains($text, 'máquinas')) {
             $resultado['entorno'] = 'gimnasio';
         } elseif (str_contains($text, 'mancuerna') || str_contains($text, 'pesas') || str_contains($text, 'bandas') || str_contains($text, 'ligas')) {
@@ -353,17 +395,41 @@ class ConversationalChatbotService
             $resultado['entorno'] = 'casa_sin_equipo';
         }
 
-        // 4. Lesiones
+        foreach ($dinamicos['entorno'] as $normKw => $targetEntorno) {
+            if (str_contains($normText, $normKw)) {
+                $resultado['entorno'] = $targetEntorno;
+                break;
+            }
+        }
+
+        // 4. Lesiones (reglas base + vocabulario entrenado)
+        // Evitar falsos positivos cuando el usuario pide entrenar un músculo (ej: "rutina de hombros" o "entrenar espalda")
+        $tieneContextoLesion = (bool) preg_match('/(dolor|duele|lesi[oó]n|molestia|lastim|problemas?|sensib|da[ñn]|herid|operad|cirug|ci[aá]tica|manguito|lumbar|esguince|tendinitis|menisco|fractura|incomodidad|evitar|cuidar)/iu', $text);
+        $esPeticionEntrenoZona = function (string $zonaPattern) use ($text): bool {
+            return (bool) preg_match('/(rutina|entrenar|ejercicios?|trabajar|hacer|marcar|fortalecer|crecer|enfocad[ao]|para)\s+(?:de\s+|para\s+|mis?\s+|los?\s+|las?\s+|el\s+|la\s+)?(?:\w+\s+y\s+)?' . $zonaPattern . '/iu', $text);
+        };
+
         if (str_contains($text, 'rodilla')) {
             $resultado['lesion'] = 'rodilla';
-        } elseif (str_contains($text, 'espalda') || str_contains($text, 'lumbar') || str_contains($text, 'ciática')) {
+        } elseif (str_contains($text, 'lumbar') || str_contains($text, 'ciática') || str_contains($text, 'ciatica') || str_contains($text, 'espalda baja')) {
             $resultado['lesion'] = 'espalda_baja';
-        } elseif (str_contains($text, 'hombro') || str_contains($text, 'manguito')) {
+        } elseif (str_contains($text, 'espalda') && ($tieneContextoLesion || !$esPeticionEntrenoZona('espalda'))) {
+            $resultado['lesion'] = 'espalda_baja';
+        } elseif (str_contains($text, 'manguito')) {
             $resultado['lesion'] = 'hombro';
-        } elseif (str_contains($text, 'muñeca') || str_contains($text, 'mano')) {
+        } elseif (str_contains($text, 'hombro') && ($tieneContextoLesion || !$esPeticionEntrenoZona('hombros?'))) {
+            $resultado['lesion'] = 'hombro';
+        } elseif (str_contains($text, 'muñeca') || str_contains($text, 'muneca') || (str_contains($text, 'mano') && $tieneContextoLesion)) {
             $resultado['lesion'] = 'muñeca';
         } elseif (str_contains($text, 'ninguna') || str_contains($text, 'sin lesion') || str_contains($text, 'sin lesión') || str_contains($text, 'al 100') || str_contains($text, 'todo bien') || str_contains($text, 'sano')) {
             $resultado['lesion'] = 'ninguna';
+        }
+
+        foreach ($dinamicos['lesion'] as $normKw => $targetLesion) {
+            if (str_contains($normText, $normKw)) {
+                $resultado['lesion'] = $targetLesion;
+                break;
+            }
         }
 
         // 5. Objetivos
@@ -379,9 +445,9 @@ class ConversationalChatbotService
     }
 
     /**
-     * Detecta emergencias clínicas agudas (REG-SEG-05).
+     * Detecta emergencias clínicas agudas (REG-SEG-05 + alarmas entrenadas manualmente).
      */
-    protected function detectarEmergenciaMedica(string $text): bool
+    protected function detectarEmergenciaMedicaDetalle(string $text): array
     {
         $palabrasAlarma = [
             'dolor en el pecho', 'dolor de pecho', 'presión en el pecho',
@@ -389,12 +455,38 @@ class ConversationalChatbotService
             'no puedo respirar', 'dolor agudo', 'taquicardia', 'dolor punzante'
         ];
 
-        foreach ($palabrasAlarma as $alarma) {
-            if (str_contains($text, $alarma)) {
-                return true;
+        $normText = $this->trainingService->normalizeText($text);
+
+        // Revisar primero alarmas entrenadas manualmente (pueden traer respuesta personalizada)
+        $dinamicos = $this->trainingService->getDynamicSynonyms();
+        foreach ($dinamicos['alarma'] as $alarmaItem) {
+            if ($alarmaItem['keyword'] !== '' && str_contains($normText, $alarmaItem['keyword'])) {
+                return [
+                    'detected' => true,
+                    'keyword' => $alarmaItem['raw'],
+                    'custom_response' => $alarmaItem['response_text'] ?: null,
+                    'source' => 'manual',
+                ];
             }
         }
-        return false;
+
+        foreach ($palabrasAlarma as $alarma) {
+            if (str_contains($text, $alarma) || str_contains($normText, $this->trainingService->normalizeText($alarma))) {
+                return [
+                    'detected' => true,
+                    'keyword' => $alarma,
+                    'custom_response' => null,
+                    'source' => 'base',
+                ];
+            }
+        }
+
+        return ['detected' => false, 'keyword' => null, 'custom_response' => null, 'source' => null];
+    }
+
+    protected function detectarEmergenciaMedica(string $text): bool
+    {
+        return $this->detectarEmergenciaMedicaDetalle($text)['detected'];
     }
 
     protected function esConsultaHistorial(string $text): bool
@@ -412,8 +504,12 @@ class ConversationalChatbotService
         return str_contains($text, 'termine') || str_contains($text, 'terminé') || str_contains($text, 'complete') || str_contains($text, 'completé') || str_contains($text, 'ya acabe') || str_contains($text, 'ya acabé') || str_contains($text, 'finalice') || str_contains($text, 'finalicé');
     }
 
-    protected function esSolicitudRutina(string $text): bool
+    protected function esSolicitudRutina(string $text, array $entidades = []): bool
     {
+        if (!empty($entidades['musculos'])) {
+            return true;
+        }
+
         return str_contains($text, 'rutina') 
             || str_contains($text, 'entrenar') 
             || str_contains($text, 'ejercicios') 
@@ -434,6 +530,73 @@ class ConversationalChatbotService
             || str_contains($text, 'glúteo')
             || str_contains($text, 'abdomen')
             || str_contains($text, 'core');
+    }
+
+    /**
+     * Simula en vivo cómo el chatbot interpreta un mensaje (NLP, Q&A, Guardrails y RAG)
+     * sin alterar el perfil del usuario ni crear sesiones en la base de datos.
+     */
+    public function inspeccionarMensaje(User $user, string $mensaje): array
+    {
+        $mensajeLimpio = mb_strtolower(trim($mensaje));
+        $entidades = $this->extraerEntidadesNLP($mensajeLimpio);
+        $emergencia = $this->detectarEmergenciaMedicaDetalle($mensajeLimpio);
+        $qaMatch = $this->trainingService->findQaMatch($mensaje);
+
+        $intencion = 'entrevista_conversacional';
+        $vistaPrevia = '';
+        $fuente = 'motor_base';
+
+        if ($emergencia['detected']) {
+            $intencion = 'alerta_emergencia';
+            $fuente = $emergencia['source'] === 'manual' ? 'alarma_entrenada' : 'guardrail_base';
+            $vistaPrevia = $emergencia['custom_response']
+                ?: "🚨 ¡ALTO, AVENTURERO! Alerta médica disparada por '{$emergencia['keyword']}'. Se bloquea la prescripción de ejercicios.";
+        } elseif ($qaMatch !== null) {
+            $intencion = 'respuesta_entrenada';
+            $fuente = 'qa_manual';
+            $vistaPrevia = $this->limpiarTextoMarkdown($qaMatch['response_text']);
+        } elseif ($this->esConsultaHistorial($mensajeLimpio)) {
+            $intencion = 'consulta_historial';
+            $vistaPrevia = 'Consultará y mostrará la crónica de entrenamientos previos del usuario.';
+        } elseif ($this->esConsultaExplicabilidad($mensajeLimpio)) {
+            $intencion = 'consulta_explicabilidad';
+            $vistaPrevia = 'Explicará paso a paso cómo y por qué se construyó la última rutina.';
+        } elseif ($this->esConfirmacionFinalizacion($mensajeLimpio)) {
+            $intencion = 'confirmacion_finalizacion';
+            $vistaPrevia = 'Cerrará la rutina en progreso y otorgará XP y avance de misiones RPG.';
+        } elseif ($this->esSolicitudRutina($mensajeLimpio, $entidades) || $this->tieneParametrosSuficientes($user)) {
+            $intencion = 'generar_rutina_rag';
+            $tiempo = $entidades['tiempo'] ?? $user->available_time_minutes ?? 15;
+            $entorno = $entidades['entorno'] ?? $user->environment ?? 'casa_sin_equipo';
+            $lesion = $entidades['lesion'] ?? $user->injury ?? 'ninguna';
+            $enfoque = !empty($entidades['nombres_musculos']) ? implode(' y ', $entidades['nombres_musculos']) : 'Cuerpo completo / Balanceado';
+            $vistaPrevia = "Generará una rutina RAG de {$tiempo} min enfocada en {$enfoque} (Entorno: {$entorno}, Protección articular: {$lesion}).";
+        } else {
+            $vistaPrevia = 'Continuará la entrevista conversacional adaptativa solicitando los parámetros faltantes.';
+        }
+
+        // Revisar si existen ejercicios personalizados RAG que coincidan con el músculo detectado
+        $ejerciciosCustomMatch = [];
+        $customExercises = $this->trainingService->getCustomExercises();
+        if (!empty($entidades['musculos'])) {
+            foreach ($customExercises as $ex) {
+                if (in_array(strtolower($ex['musculo_principal']), $entidades['musculos'], true)) {
+                    $ejerciciosCustomMatch[] = $ex['nombre'];
+                }
+            }
+        }
+
+        return [
+            'mensaje' => $mensaje,
+            'intencion_detectada' => $intencion,
+            'fuente' => $fuente,
+            'entidades_nlp' => $entidades,
+            'qa_coincidencia' => $qaMatch,
+            'emergencia' => $emergencia,
+            'ejercicios_rag_personalizados_aplicables' => $ejerciciosCustomMatch,
+            'vista_previa_respuesta' => $vistaPrevia,
+        ];
     }
 
     protected function tieneParametrosSuficientes(User $user): bool

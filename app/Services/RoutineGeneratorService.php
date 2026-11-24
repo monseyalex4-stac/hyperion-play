@@ -72,8 +72,9 @@ class RoutineGeneratorService
         $fueFacil = $ultimaSesion ? ($ultimaSesion->difficulty_rating === 'muy_facil') : false;
 
         // 3. Reglas de Impacto y Lesiones (HU #9 & HU #11)
-        $edadLimiteDisparada = ($perfil['edad'] > 45);
-        $grasaLimiteDisparada = ($perfil['body_fat'] > 25.0);
+        $thresholds = $this->rulesEngine->getSafetyThresholds();
+        $edadLimiteDisparada = ($perfil['edad'] > $thresholds['edad_limite']);
+        $grasaLimiteDisparada = ($perfil['body_fat'] > $thresholds['grasa_limite']);
         $forzadoBajo = (($overrides['nivel_impacto_forzado'] ?? '') === 'bajo');
         $forzarBajoImpacto = ($forzadoBajo || $edadLimiteDisparada || $grasaLimiteDisparada || ($perfil['lesion'] !== 'ninguna' && !empty($perfil['lesion'])));
 
@@ -302,6 +303,11 @@ class RoutineGeneratorService
      */
     protected function generarIndicacionPostural(array $ejercicio, string $lesion): string
     {
+        // Priorizar indicación postural entrenada manualmente en el catálogo RAG
+        if (!empty($ejercicio['indicacion_postural'])) {
+            return (string) $ejercicio['indicacion_postural'];
+        }
+
         $nombre = strtolower($ejercicio['nombre'] ?? '');
         $musculo = strtolower($ejercicio['musculo_principal'] ?? '');
 

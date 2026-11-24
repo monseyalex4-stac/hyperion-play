@@ -6,59 +6,52 @@ use Illuminate\Support\Facades\File;
 
 class DecisionRulesEngineService
 {
-    protected array $rules;
     protected string $rulesPath;
+    protected ChatbotTrainingService $trainingService;
 
-    public function __construct()
+    public function __construct(?ChatbotTrainingService $trainingService = null)
     {
         $this->rulesPath = storage_path('app/DATASET/reglas.json');
-        if (File::exists($this->rulesPath)) {
-            $this->rules = json_decode(File::get($this->rulesPath), true) ?: [];
-        } else {
-            $this->rules = [
-                'reglas_seguridad' => [
-                    'edad_limite_impacto_bajo' => 45,
-                    'grasa_limite_impacto_bajo' => 25.0,
-                    'accion_edad_grasa' => 'restringir_a_bajo_impacto'
-                ],
-                'reglas_lesiones' => [
-                    'articulaciones_monitoreadas' => ['rodilla', 'espalda_baja', 'hombro', 'muñeca'],
-                    'accion_lesion' => 'exclusion_estricta'
-                ],
-                'reglas_entorno' => [
-                    'compatibilidad' => [
-                        'casa_sin_equipo' => ['casa_sin_equipo'],
-                        'casa_basico' => ['casa_sin_equipo', 'casa_basico'],
-                        'gimnasio' => ['casa_sin_equipo', 'casa_basico', 'gimnasio']
-                    ]
-                ],
-                'reglas_tiempo' => [
-                    'tiempo_default_seg' => 900,
-                    'tolerancia_margen_seg' => 60,
-                    'series_promedio' => 3
-                ],
-                'gamificacion_xp' => [
-                    'base_completitud' => 50,
-                    'bonus_por_serie' => 5
-                ]
-            ];
-        }
+        $this->trainingService = $trainingService ?? new ChatbotTrainingService();
+    }
+
+    /**
+     * Obtiene las reglas clínicas efectivas (reglas.json + entrenamiento manual activo).
+     */
+    public function getRules(): array
+    {
+        return $this->trainingService->getClinicalRules();
+    }
+
+    /**
+     * Retorna los umbrales de seguridad de edad y porcentaje de grasa corporal.
+     */
+    public function getSafetyThresholds(): array
+    {
+        $rules = $this->getRules();
+
+        return [
+            'edad_limite' => (int) ($rules['reglas_seguridad']['edad_limite_impacto_bajo'] ?? 45),
+            'grasa_limite' => (float) ($rules['reglas_seguridad']['grasa_limite_impacto_bajo'] ?? 25.0),
+        ];
     }
 
     /**
      * Evalúa si un ejercicio específico es seguro y compatible para el perfil dado.
      * Retorna ['es_seguro' => bool, 'motivo' => ?string]
      */
-    public function evaluarSeguridadEjercicio(array $ejercicio, array $perfil): array
+    public function evaluarSeguridadEjercicio(array $ejercicio, array $perfil, ?array $preloadedRules = null): array
     {
+        $rules = $preloadedRules ?? $this->getRules();
+
         $edad = (int) ($perfil['edad'] ?? $perfil['Age'] ?? 25);
         $bodyFat = (float) ($perfil['body_fat'] ?? $perfil['BodyFat_pct'] ?? $perfil['BodyFat'] ?? 18.0);
         $lesion = strtolower(trim((string) ($perfil['lesion'] ?? 'ninguna')));
         $entorno = strtolower(trim((string) ($perfil['entorno'] ?? 'casa_sin_equipo')));
 
         // 1. Regla de Seguridad por Edad o Grasa Corporal (HU #4 & HU #9)
-        $umbralEdad = $this->rules['reglas_seguridad']['edad_limite_impacto_bajo'] ?? 45;
-        $umbralGrasa = $this->rules['reglas_seguridad']['grasa_limite_impacto_bajo'] ?? 25.0;
+        $umbralEdad = $rules['reglas_seguridad']['edad_limite_impacto_bajo'] ?? 45;
+        $umbralGrasa = $rules['reglas_seguridad']['grasa_limite_impacto_bajo'] ?? 25.0;
 
         if ($edad > $umbralEdad || $bodyFat > $umbralGrasa) {
             $impacto = strtolower($ejercicio['nivel_impacto'] ?? 'medio');
@@ -73,7 +66,7 @@ class DecisionRulesEngineService
         // 2. Regla de Exclusión Estricta por Lesión Articular (HU #4 & HU #11)
         if ($lesion !== '' && !in_array($lesion, ['ninguna', 'ninguno', 'sano', 'sin_lesion'])) {
             $zonasRiesgo = array_map('strtolower', $ejercicio['zonas_riesgo_evitar'] ?? []);
-            $articulacionesMonitoreadas = $this->rules['reglas_lesiones']['articulaciones_monitoreadas'] ?? ['rodilla', 'espalda_baja', 'hombro', 'muñeca'];
+            $articulacionesMonitoreadas = $rules['reglas_lesiones']['articulaciones_monitoreadas'] ?? ['rodilla', 'espalda_baja', 'hombro', 'muñeca'];
 
             foreach ($articulacionesMonitoreadas as $art) {
                 if (str_contains($lesion, $art) && in_array($art, $zonasRiesgo)) {
@@ -86,7 +79,7 @@ class DecisionRulesEngineService
         }
 
         // 3. Regla de Compatibilidad de Entorno / Equipamiento
-        $compatibles = $this->rules['reglas_entorno']['compatibilidad'][$entorno] ?? ['casa_sin_equipo'];
+        $compatibles = $rules['reglas_entorno']['compatibilidad'][$entorno] ?? ['casa_sin_equipo'];
         $entornoEjercicio = strtolower($ejercicio['entorno'] ?? 'casa_sin_equipo');
 
         if (!in_array($entornoEjercicio, $compatibles)) {
@@ -104,11 +97,12 @@ class DecisionRulesEngineService
      */
     public function filtrarCatalogo(array $catalogo, array $perfil): array
     {
+        $rules = $this->getRules();
         $seguros = [];
         $descartados = [];
 
         foreach ($catalogo as $ex) {
-            $evaluacion = $this->evaluarSeguridadEjercicio($ex, $perfil);
+            $evaluacion = $this->evaluarSeguridadEjercicio($ex, $perfil, $rules);
             if ($evaluacion['es_seguro']) {
                 $seguros[] = $ex;
             } else {
@@ -152,6 +146,9 @@ class DecisionRulesEngineService
         }
 
         $catalogo = json_decode(File::get($ragPath), true) ?: [];
+        $rules = $this->getRules();
+        $umbralEdad = (int) ($rules['reglas_seguridad']['edad_limite_impacto_bajo'] ?? 45);
+        $umbralGrasa = (float) ($rules['reglas_seguridad']['grasa_limite_impacto_bajo'] ?? 25.0);
 
         // Muestra de 20 perfiles con variabilidad
         $step = max(1, (int) floor(count($perfiles) / 20));
@@ -188,7 +185,7 @@ class DecisionRulesEngineService
             $vnUsr = 0;
             $fnUsr = 0;
 
-            $debeRestringirImpacto = ($grasa > 25.0 || $edad > 45);
+            $debeRestringirImpacto = ($grasa > $umbralGrasa || $edad > $umbralEdad);
 
             foreach ($catalogo as $ex) {
                 $impacto = $ex['nivel_impacto'] ?? 'medio';
@@ -204,7 +201,7 @@ class DecisionRulesEngineService
                 }
 
                 // Inferencia del motor de reglas
-                $eval = $this->evaluarSeguridadEjercicio($ex, $perfil);
+                $eval = $this->evaluarSeguridadEjercicio($ex, $perfil, $rules);
                 $recomendado = $eval['es_seguro'];
 
                 if ($recomendado && $esSeguro) {

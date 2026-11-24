@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DatasetController;
 use App\Http\Controllers\ChatbotController;
+use App\Http\Controllers\ChatbotTrainingController;
 use App\Http\Controllers\HyperionViewController;
 use App\Http\Controllers\RoutineApiController;
 use App\Http\Controllers\AuthController;
@@ -49,4 +50,14 @@ Route::prefix('api')->group(function () {
     Route::post('/routine/generate', [RoutineApiController::class, 'generateRoutine']);
     Route::post('/routine/low-impact', [RoutineApiController::class, 'generateLowImpactRoutine']);
     Route::get('/routine/progressive-overload', [RoutineApiController::class, 'getProgressiveOverload']);
+
+    // Laboratorio de Entrenamiento Manual del Chatbot (Q&A, NLP, RAG y Reglas Clínicas)
+    Route::get('/training', [ChatbotTrainingController::class, 'index']);
+    Route::post('/training/entries', [ChatbotTrainingController::class, 'store']);
+    Route::patch('/training/entries/{id}/toggle', [ChatbotTrainingController::class, 'toggle']);
+    Route::delete('/training/entries/{id}', [ChatbotTrainingController::class, 'destroy']);
+    Route::post('/training/rules', [ChatbotTrainingController::class, 'saveRules']);
+    Route::post('/training/simulate', [ChatbotTrainingController::class, 'simulate']);
+    Route::get('/training/export', [ChatbotTrainingController::class, 'export']);
+    Route::post('/training/import', [ChatbotTrainingController::class, 'import']);
 });

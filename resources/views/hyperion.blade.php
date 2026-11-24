@@ -69,6 +69,11 @@
 
             <!-- Global Action Badges & Auth Area -->
             <div class="flex items-center space-x-2 sm:space-x-3">
+                <button onclick="abrirModalEntrenamiento()" class="flex px-3 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-xs text-emerald-300 border border-emerald-500/40 transition items-center space-x-1.5 font-semibold shadow-sm" title="Entrenar manualmente el chatbot (Q&A, Vocabulario NLP, Ejercicios RAG y Reglas)">
+                    <i class="fa-solid fa-brain"></i>
+                    <span class="hidden md:inline">Entrenar Chatbot</span>
+                    <span class="md:hidden">Entrenar</span>
+                </button>
                 <button onclick="abrirModalMetricas()" class="hidden sm:flex px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-amber-300 border border-amber-500/30 transition items-center space-x-1.5">
                     <i class="fa-solid fa-chart-pie"></i>
                     <span>Auditoría HU #5</span>
@@ -213,9 +218,14 @@
                         <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
                         <span class="font-semibold text-sm text-slate-200">Canal de Mentoría con Hyperion</span>
                     </div>
-                    <button onclick="resetearChat()" class="text-xs text-slate-400 hover:text-amber-400 transition" title="Reiniciar conversación">
-                        <i class="fa-solid fa-arrows-rotate mr-1"></i> Reiniciar
-                    </button>
+                    <div class="flex items-center space-x-3">
+                        <button onclick="abrirModalEntrenamiento()" class="text-xs text-emerald-400 hover:text-emerald-300 transition font-medium" title="Abrir Laboratorio de Entrenamiento Manual">
+                            <i class="fa-solid fa-brain mr-1"></i> Entrenar IA
+                        </button>
+                        <button onclick="resetearChat()" class="text-xs text-slate-400 hover:text-amber-400 transition" title="Reiniciar conversación">
+                            <i class="fa-solid fa-arrows-rotate mr-1"></i> Reiniciar
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Chat Stream -->
@@ -766,6 +776,299 @@
         </div>
     </div>
 
+    <!-- Modal Laboratorio de Entrenamiento Manual del Chatbot -->
+    <div id="modal-entrenamiento-chatbot" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4">
+        <div class="rpg-card rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col border border-emerald-500/30 overflow-hidden shadow-2xl">
+            <!-- Header del Laboratorio -->
+            <div class="px-5 py-4 border-b border-slate-800 bg-slate-950/90 flex items-center justify-between gap-3">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center text-emerald-400 text-lg">
+                        <i class="fa-solid fa-brain"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-rpg font-bold text-white text-base sm:text-lg tracking-wide">
+                            Laboratorio de Entrenamiento Manual — Hyperion IA
+                        </h3>
+                        <p class="text-[11px] text-slate-400">
+                            Enseña respuestas Q&A, modismos NLP, ejercicios clínicos RAG y reglas de seguridad en tiempo real.
+                        </p>
+                    </div>
+                </div>
+                <button onclick="cerrarModalEntrenamiento()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark text-base"></i>
+                </button>
+            </div>
+
+            <!-- Barra de Estadísticas en Vivo + Notificación -->
+            <div class="px-5 py-2.5 bg-slate-900/80 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-300">
+                        <i class="fa-solid fa-comments text-emerald-400 mr-1"></i> Q&A: <strong id="stat-train-qa" class="text-white">0</strong>
+                    </span>
+                    <span class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-300">
+                        <i class="fa-solid fa-language text-sky-400 mr-1"></i> Vocabulario NLP: <strong id="stat-train-nlp" class="text-white">0</strong>
+                    </span>
+                    <span class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-300">
+                        <i class="fa-solid fa-dumbbell text-amber-400 mr-1"></i> Ejercicios Propios: <strong id="stat-train-rag" class="text-white">0</strong>
+                    </span>
+                    <span class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-400">
+                        Catálogo RAG Total: <strong id="stat-train-total" class="text-amber-300">0</strong>
+                    </span>
+                </div>
+                <div id="train-toast" class="hidden px-2.5 py-1 rounded-lg text-[11px] font-medium"></div>
+            </div>
+
+            <!-- Pestañas de Navegación -->
+            <div class="px-5 pt-3 bg-slate-950/60 border-b border-slate-800 flex flex-wrap gap-1.5 text-xs">
+                <button type="button" id="btn-tab-qa" onclick="cambiarTabEntrenamiento('qa')" class="train-tab-btn px-3.5 py-2 rounded-t-xl font-semibold border border-b-0 transition flex items-center gap-1.5 bg-emerald-500/20 text-emerald-300 border-emerald-500/40">
+                    <i class="fa-solid fa-comments"></i> 1. Respuestas (Q&A)
+                </button>
+                <button type="button" id="btn-tab-nlp" onclick="cambiarTabEntrenamiento('nlp')" class="train-tab-btn px-3.5 py-2 rounded-t-xl font-semibold border border-b-0 transition flex items-center gap-1.5 bg-slate-900/70 text-slate-400 border-slate-800 hover:text-slate-200">
+                    <i class="fa-solid fa-language"></i> 2. Vocabulario NLP
+                </button>
+                <button type="button" id="btn-tab-rag" onclick="cambiarTabEntrenamiento('rag')" class="train-tab-btn px-3.5 py-2 rounded-t-xl font-semibold border border-b-0 transition flex items-center gap-1.5 bg-slate-900/70 text-slate-400 border-slate-800 hover:text-slate-200">
+                    <i class="fa-solid fa-dumbbell"></i> 3. Ejercicios RAG
+                </button>
+                <button type="button" id="btn-tab-rules" onclick="cambiarTabEntrenamiento('rules')" class="train-tab-btn px-3.5 py-2 rounded-t-xl font-semibold border border-b-0 transition flex items-center gap-1.5 bg-slate-900/70 text-slate-400 border-slate-800 hover:text-slate-200">
+                    <i class="fa-solid fa-shield-halved"></i> 4. Reglas y Simulador
+                </button>
+            </div>
+
+            <!-- Contenido Scrollable de las Pestañas -->
+            <div class="flex-1 overflow-y-auto p-5 space-y-5 bg-slate-950/40">
+
+                <!-- TAB 1: RESPUESTAS PERSONALIZADAS (Q&A) -->
+                <div id="tab-train-qa" class="train-tab-panel space-y-5">
+                    <form id="form-train-qa" onsubmit="guardarEntrenamientoQa(event)" class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3 text-xs">
+                        <div class="flex items-center justify-between">
+                            <h4 class="font-bold text-emerald-300 flex items-center gap-1.5">
+                                <i class="fa-solid fa-plus-circle"></i> Enseñar Nueva Pregunta / Respuesta
+                            </h4>
+                            <span class="text-[10px] text-slate-400">Se activa al instante sin reiniciar el servidor</span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div class="md:col-span-2">
+                                <label class="block text-slate-300 font-medium mb-1">Frases o palabras clave disparadoras (separadas por coma) *</label>
+                                <input type="text" id="train-qa-trigger" required placeholder="Ej: que comer antes de entrenar, pre entreno, comida antes de ejercicio" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                            </div>
+                            <div>
+                                <label class="block text-slate-300 font-medium mb-1">Modo de coincidencia</label>
+                                <select id="train-qa-mode" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                    <option value="contains">Contiene la frase (Recomendado)</option>
+                                    <option value="exact">Coincidencia exacta</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-slate-300 font-medium mb-1">Respuesta de Hyperion *</label>
+                            <textarea id="train-qa-response" rows="3" required placeholder="Escribe exactamente lo que Hyperion responderá al detectar esta pregunta..." class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"></textarea>
+                        </div>
+                        <div class="flex justify-end">
+                            <button type="submit" class="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold transition flex items-center gap-1.5 shadow-md shadow-emerald-500/20">
+                                <i class="fa-solid fa-floppy-disk"></i> Guardar Respuesta Q&A
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="space-y-2">
+                        <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Respuestas Q&A Entrenadas</h4>
+                        <div id="lista-train-qa" class="space-y-2.5"></div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: VOCABULARIO NLP (MODISMOS, LESIONES, ENTORNOS, ALARMAS) -->
+                <div id="tab-train-nlp" class="train-tab-panel hidden space-y-5">
+                    <form id="form-train-nlp" onsubmit="guardarEntrenamientoNlp(event)" class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3 text-xs">
+                        <h4 class="font-bold text-sky-300 flex items-center gap-1.5">
+                            <i class="fa-solid fa-plus-circle"></i> Enseñar Modismo, Lesión, Entorno o Alerta Médica
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-slate-300 font-medium mb-1">Categoría NLP *</label>
+                                <select id="train-nlp-category" onchange="actualizarOpcionesDestinoNlp()" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-sky-500">
+                                    <option value="musculo">Músculo / Modismo</option>
+                                    <option value="lesion">Lesión / Molestia articular</option>
+                                    <option value="entorno">Entorno / Equipamiento</option>
+                                    <option value="alarma">Alerta Médica (Guardrail)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-slate-300 font-medium mb-1">Palabras clave (separadas por coma) *</label>
+                                <input type="text" id="train-nlp-trigger" required placeholder="Ej: conejo, conejos" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-500">
+                            </div>
+                            <div id="train-nlp-target-wrap">
+                                <label class="block text-slate-300 font-medium mb-1">Significado / Destino *</label>
+                                <select id="train-nlp-target" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-sky-500"></select>
+                            </div>
+                        </div>
+                        <div id="train-nlp-alarm-response-wrap" class="hidden">
+                            <label class="block text-slate-300 font-medium mb-1">Mensaje de emergencia personalizado (opcional)</label>
+                            <textarea id="train-nlp-response" rows="2" placeholder="Si lo dejas vacío, Hyperion mostrará el protocolo estándar de emergencia médica REG-SEG-05." class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-rose-500"></textarea>
+                        </div>
+                        <div class="flex justify-end">
+                            <button type="submit" class="px-4 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold transition flex items-center gap-1.5 shadow-md shadow-sky-500/20">
+                                <i class="fa-solid fa-graduation-cap"></i> Entrenar Vocabulario NLP
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="space-y-2">
+                        <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Vocabulario NLP Entrenado</h4>
+                        <div id="lista-train-nlp" class="space-y-2"></div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: EJERCICIOS PERSONALIZADOS RAG -->
+                <div id="tab-train-rag" class="train-tab-panel hidden space-y-5">
+                    <form id="form-train-rag" onsubmit="guardarEntrenamientoRag(event)" class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3 text-xs">
+                        <h4 class="font-bold text-amber-300 flex items-center gap-1.5">
+                            <i class="fa-solid fa-plus-circle"></i> Añadir Ejercicio al Catálogo Clínico RAG
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div class="md:col-span-2">
+                                <label class="block text-slate-300 font-medium mb-1">Nombre del Ejercicio *</label>
+                                <input type="text" id="train-rag-name" required placeholder="Ej: Press Militar Espartano con Mancuernas" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-slate-300 font-medium mb-1">Músculo Principal *</label>
+                                <select id="train-rag-muscle" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-amber-500">
+                                    <option value="pectorals">Pecho (Pectorals)</option>
+                                    <option value="biceps">Bíceps (Biceps)</option>
+                                    <option value="triceps">Tríceps (Triceps)</option>
+                                    <option value="delts">Hombros (Delts)</option>
+                                    <option value="lats">Espalda / Dorsales (Lats)</option>
+                                    <option value="quads">Cuádriceps / Pierna (Quads)</option>
+                                    <option value="hamstrings">Femorales (Hamstrings)</option>
+                                    <option value="glutes">Glúteos (Glutes)</option>
+                                    <option value="calves">Pantorrillas (Calves)</option>
+                                    <option value="abs">Abdomen / Core (Abs)</option>
+                                    <option value="cardiovascular system">Cardio</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div>
+                                <label class="block text-slate-300 font-medium mb-1">Entorno</label>
+                                <select id="train-rag-env" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-2 text-white focus:outline-none focus:ring-1 focus:ring-amber-500">
+                                    <option value="casa_sin_equipo">Casa sin equipo</option>
+                                    <option value="casa_basico">Casa con mancuernas</option>
+                                    <option value="gimnasio">Gimnasio</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-slate-300 font-medium mb-1">Impacto Articular</label>
+                                <select id="train-rag-impact" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-2 text-white focus:outline-none focus:ring-1 focus:ring-amber-500">
+                                    <option value="bajo">Bajo (Seguro)</option>
+                                    <option value="medio">Medio</option>
+                                    <option value="alto">Alto</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-slate-300 font-medium mb-1">Duración / Serie (seg)</label>
+                                <input type="number" id="train-rag-duration" value="50" min="15" max="180" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-2 text-white focus:outline-none focus:ring-1 focus:ring-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-slate-300 font-medium mb-1">Recompensa XP Base</label>
+                                <input type="number" id="train-rag-xp" value="20" min="5" max="100" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-2 text-white focus:outline-none focus:ring-1 focus:ring-amber-500">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-slate-300 font-medium mb-1.5">Zonas de riesgo articular a evitar (si el usuario tiene lesión ahí, el motor descartará este ejercicio)</label>
+                            <div class="flex flex-wrap gap-3 text-slate-300">
+                                <label class="inline-flex items-center gap-1.5 cursor-pointer"><input type="checkbox" value="rodilla" class="train-rag-risk accent-amber-500"> Rodilla</label>
+                                <label class="inline-flex items-center gap-1.5 cursor-pointer"><input type="checkbox" value="espalda_baja" class="train-rag-risk accent-amber-500"> Espalda baja</label>
+                                <label class="inline-flex items-center gap-1.5 cursor-pointer"><input type="checkbox" value="hombro" class="train-rag-risk accent-amber-500"> Hombro</label>
+                                <label class="inline-flex items-center gap-1.5 cursor-pointer"><input type="checkbox" value="muñeca" class="train-rag-risk accent-amber-500"> Muñeca</label>
+                                <label class="inline-flex items-center gap-1.5 cursor-pointer"><input type="checkbox" value="tobillo" class="train-rag-risk accent-amber-500"> Tobillo</label>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-slate-300 font-medium mb-1">Indicación Postural / Técnica (mostrada por Hyperion) *</label>
+                            <textarea id="train-rag-posture" rows="2" required placeholder="Ej: Mantén el torso firme, escápulas retraídas y controla el descenso durante 3 segundos." class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-500"></textarea>
+                        </div>
+
+                        <div class="flex justify-end">
+                            <button type="submit" class="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold transition flex items-center gap-1.5 shadow-md shadow-amber-500/20">
+                                <i class="fa-solid fa-plus"></i> Inyectar Ejercicio al RAG
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="space-y-2">
+                        <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Ejercicios Personalizados en el Catálogo RAG</h4>
+                        <div id="lista-train-rag" class="space-y-2"></div>
+                    </div>
+                </div>
+
+                <!-- TAB 4: REGLAS CLÍNICAS, SIMULADOR EN VIVO Y RESPALDO JSON -->
+                <div id="tab-train-rules" class="train-tab-panel hidden space-y-5">
+                    <!-- Simulador de Entrenamiento en Vivo -->
+                    <div class="p-4 rounded-xl bg-emerald-950/20 border border-emerald-500/30 space-y-3 text-xs">
+                        <h4 class="font-bold text-emerald-300 flex items-center gap-1.5">
+                            <i class="fa-solid fa-flask"></i> Simulador de Diagnóstico NLP & RAG en Vivo
+                        </h4>
+                        <p class="text-[11px] text-slate-400">Prueba cualquier frase aquí para verificar qué entiende Hyperion (sin modificar tu perfil ni crear sesiones reales).</p>
+                        <form onsubmit="simularEntrenamientoVivo(event)" class="flex gap-2">
+                            <input type="text" id="train-sim-input" required placeholder="Ej: quiero entrenar conejos 25 min, o: qué comer antes de entrenar" class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                            <button type="submit" class="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold transition flex items-center gap-1.5 shrink-0">
+                                <i class="fa-solid fa-play"></i> Analizar
+                            </button>
+                        </form>
+                        <div id="train-sim-result" class="hidden p-3 rounded-lg bg-slate-950/90 border border-slate-800 space-y-2"></div>
+                    </div>
+
+                    <!-- Configuración de Reglas Clínicas -->
+                    <form id="form-train-rules" onsubmit="guardarReglasClinicas(event)" class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3 text-xs">
+                        <h4 class="font-bold text-amber-300 flex items-center gap-1.5">
+                            <i class="fa-solid fa-shield-heart"></i> Umbrales del Motor de Reglas Clínicas (HU #04)
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-slate-300 font-medium mb-1">Edad límite para Bajo Impacto (años)</label>
+                                <input type="number" id="train-rule-age" min="18" max="90" value="45" required class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-slate-300 font-medium mb-1">% Grasa límite para Bajo Impacto</label>
+                                <input type="number" step="0.5" id="train-rule-fat" min="10" max="55" value="25.0" required class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-slate-300 font-medium mb-1">Articulaciones monitoreadas (coma)</label>
+                                <input type="text" id="train-rule-joints" value="rodilla, espalda_baja, hombro, muñeca" required class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-amber-500">
+                            </div>
+                        </div>
+                        <div class="flex justify-end">
+                            <button type="submit" class="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold transition flex items-center gap-1.5">
+                                <i class="fa-solid fa-floppy-disk"></i> Guardar Reglas Clínicas
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Respaldo: Exportar / Importar Conocimiento -->
+                    <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+                        <div>
+                            <h4 class="font-bold text-slate-200 flex items-center gap-1.5">
+                                <i class="fa-solid fa-file-code text-sky-400"></i> Portabilidad del Conocimiento Entrenado
+                            </h4>
+                            <p class="text-[11px] text-slate-400">Exporta tu entrenamiento manual en formato JSON o impórtalo desde un respaldo.</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="exportarEntrenamientoJson()" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-300 border border-sky-500/30 font-semibold transition flex items-center gap-1.5">
+                                <i class="fa-solid fa-download"></i> Exportar JSON
+                            </button>
+                            <label class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-500/30 font-semibold transition flex items-center gap-1.5 cursor-pointer">
+                                <i class="fa-solid fa-upload"></i> Importar JSON
+                                <input type="file" id="train-import-file" accept=".json,application/json" onchange="importarEntrenamientoJson(event)" class="hidden">
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         let activeUserId = {{ $user->id }};
@@ -814,17 +1117,21 @@
         }
 
         // Agregar burbuja de mensaje al chat
-        function agregarBurbuja(emisor, texto) {
+        function agregarBurbuja(emisor, texto, entrenamientoAplicado = null) {
             const container = document.getElementById('chat-messages');
             const div = document.createElement('div');
             
             if (emisor === 'hyperion') {
                 const textoLimpio = limpiarMarkdown(texto);
+                const badgeEntrenado = entrenamientoAplicado
+                    ? `<span class="ml-1.5 px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-[10px] font-medium"><i class="fa-solid fa-brain mr-1"></i>Entrenamiento Manual</span>`
+                    : '';
                 div.className = 'chat-bubble-hyperion rounded-xl p-4 max-w-[92%] sm:max-w-[85%]';
                 div.innerHTML = `
                     <div class="flex items-center space-x-2 mb-1.5 text-xs text-amber-400 font-semibold">
                         <img src="/images/logo.png" alt="Hyperion" class="w-4 h-4 object-contain rounded inline-block">
                         <span>HYPERION</span>
+                        ${badgeEntrenado}
                     </div>
                     <div class="text-sm leading-relaxed text-slate-200 whitespace-pre-line">${textoLimpio}</div>
                 `;
@@ -879,7 +1186,7 @@
 
                 const data = await response.json();
                 if (data.status === 'success') {
-                    agregarBurbuja('hyperion', data.respuesta.texto);
+                    agregarBurbuja('hyperion', data.respuesta.texto, data.respuesta.entrenamiento_aplicado || null);
                     
                     if (data.respuesta.rutina) {
                         try {
@@ -1620,6 +1927,533 @@
         function emprenderMision(titulo, descripcion) {
             const promptMsg = `Quiero emprender la misión "${titulo}": ${descripcion}. Prepárame la rutina adecuada para completarla.`;
             enviarMensajeRapido(promptMsg);
+        }
+
+        // ============================================================
+        // LABORATORIO DE ENTRENAMIENTO MANUAL DEL CHATBOT
+        // ============================================================
+        function escapeHtml(str) {
+            return String(str ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function mostrarToastEntrenamiento(mensaje, tipo = 'success') {
+            const el = document.getElementById('train-toast');
+            if (!el) return;
+            el.textContent = mensaje;
+            el.className = 'px-2.5 py-1 rounded-lg text-[11px] font-medium ' + (
+                tipo === 'error'
+                    ? 'bg-rose-950/80 border border-rose-500/40 text-rose-300'
+                    : 'bg-emerald-950/80 border border-emerald-500/40 text-emerald-300'
+            );
+            el.classList.remove('hidden');
+            clearTimeout(window._trainToastTimer);
+            window._trainToastTimer = setTimeout(() => el.classList.add('hidden'), 3500);
+        }
+
+        function abrirModalEntrenamiento() {
+            const modal = document.getElementById('modal-entrenamiento-chatbot');
+            if (!modal) return;
+            modal.classList.remove('hidden');
+            actualizarOpcionesDestinoNlp();
+            cargarDatosEntrenamiento();
+        }
+
+        function cerrarModalEntrenamiento() {
+            const modal = document.getElementById('modal-entrenamiento-chatbot');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function cambiarTabEntrenamiento(tab) {
+            document.querySelectorAll('.train-tab-panel').forEach(p => p.classList.add('hidden'));
+            const panel = document.getElementById(`tab-train-${tab}`);
+            if (panel) panel.classList.remove('hidden');
+
+            document.querySelectorAll('.train-tab-btn').forEach(btn => {
+                btn.className = 'train-tab-btn px-3.5 py-2 rounded-t-xl font-semibold border border-b-0 transition flex items-center gap-1.5 bg-slate-900/70 text-slate-400 border-slate-800 hover:text-slate-200';
+            });
+
+            const activeBtn = document.getElementById(`btn-tab-${tab}`);
+            if (activeBtn) {
+                activeBtn.className = 'train-tab-btn px-3.5 py-2 rounded-t-xl font-semibold border border-b-0 transition flex items-center gap-1.5 bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
+            }
+        }
+
+        function actualizarOpcionesDestinoNlp() {
+            const cat = document.getElementById('train-nlp-category')?.value || 'musculo';
+            const select = document.getElementById('train-nlp-target');
+            const targetWrap = document.getElementById('train-nlp-target-wrap');
+            const alarmWrap = document.getElementById('train-nlp-alarm-response-wrap');
+            const triggerInput = document.getElementById('train-nlp-trigger');
+            if (!select) return;
+
+            const opciones = {
+                musculo: [
+                    ['pecho', 'Pecho'],
+                    ['biceps', 'Bíceps'],
+                    ['triceps', 'Tríceps'],
+                    ['brazos', 'Brazos'],
+                    ['espalda', 'Espalda'],
+                    ['hombros', 'Hombros'],
+                    ['piernas', 'Piernas'],
+                    ['quads', 'Cuádriceps'],
+                    ['hamstrings', 'Femorales'],
+                    ['glutes', 'Glúteos'],
+                    ['calves', 'Pantorrillas'],
+                    ['abs', 'Abdomen / Core'],
+                    ['cardio', 'Cardio'],
+                ],
+                lesion: [
+                    ['rodilla', 'Lesión de Rodilla'],
+                    ['espalda_baja', 'Lesión de Espalda Baja / Lumbar'],
+                    ['hombro', 'Lesión de Hombro'],
+                    ['muñeca', 'Lesión de Muñeca'],
+                    ['tobillo', 'Lesión de Tobillo'],
+                    ['ninguna', 'Sin lesiones (Sano)'],
+                ],
+                entorno: [
+                    ['casa_sin_equipo', 'Casa sin equipo'],
+                    ['casa_basico', 'Casa con equipo básico (Mancuernas/Bandas)'],
+                    ['gimnasio', 'Gimnasio completo'],
+                ],
+            };
+
+            if (cat === 'alarma') {
+                targetWrap.classList.add('hidden');
+                alarmWrap.classList.remove('hidden');
+                if (triggerInput) triggerInput.placeholder = 'Ej: vision borrosa, calambre fuerte, me duele la cabeza';
+            } else {
+                targetWrap.classList.remove('hidden');
+                alarmWrap.classList.add('hidden');
+                select.innerHTML = (opciones[cat] || []).map(([val, lbl]) => `<option value="${val}">${lbl}</option>`).join('');
+                if (triggerInput) {
+                    triggerInput.placeholder = cat === 'musculo'
+                        ? 'Ej: conejo, conejos, nalgas'
+                        : (cat === 'lesion' ? 'Ej: menisco, tendinitis, esguince' : 'Ej: parque, barras, crossfit');
+                }
+            }
+        }
+
+        async function cargarDatosEntrenamiento() {
+            try {
+                const res = await fetch('/api/training');
+                const data = await res.json();
+                if (data.status !== 'success') return;
+
+                // Actualizar contadores
+                document.getElementById('stat-train-qa').textContent = data.stats.total_qa;
+                document.getElementById('stat-train-nlp').textContent = data.stats.total_synonyms;
+                document.getElementById('stat-train-rag').textContent = data.stats.total_custom_exercises;
+                document.getElementById('stat-train-total').textContent = data.stats.total_catalog_exercises;
+
+                // Poblar reglas clínicas
+                if (data.clinical_rules) {
+                    document.getElementById('train-rule-age').value = data.clinical_rules.edad_limite_impacto_bajo ?? 45;
+                    document.getElementById('train-rule-fat').value = data.clinical_rules.grasa_limite_impacto_bajo ?? 25.0;
+                    document.getElementById('train-rule-joints').value = (data.clinical_rules.articulaciones_monitoreadas || []).join(', ');
+                }
+
+                renderizarListaQa(data.entries.qa || []);
+                renderizarListaNlp(data.entries.synonym || []);
+                renderizarListaRag(data.entries.exercise || []);
+            } catch (e) {
+                console.error('Error cargando entrenamiento:', e);
+                mostrarToastEntrenamiento('No se pudo cargar el conocimiento entrenado.', 'error');
+            }
+        }
+
+        function renderizarListaQa(items) {
+            const container = document.getElementById('lista-train-qa');
+            if (!container) return;
+            if (!items.length) {
+                container.innerHTML = `<div class="p-4 text-center text-xs text-slate-500 rounded-xl border border-dashed border-slate-800">Aún no has entrenado respuestas Q&A. Crea la primera arriba.</div>`;
+                return;
+            }
+
+            container.innerHTML = items.map(item => {
+                const firstTrigger = (item.trigger_text || '').split(',')[0].trim();
+                const mode = item.metadata?.match_mode === 'exact' ? 'Exacta' : 'Contiene';
+                const estadoClass = item.is_active ? 'border-emerald-500/30 bg-slate-900/70' : 'border-slate-800 bg-slate-900/30 opacity-60';
+                return `
+                    <div class="p-3.5 rounded-xl border ${estadoClass} flex flex-col sm:flex-row sm:items-start justify-between gap-3 text-xs">
+                        <div class="space-y-1 flex-1 min-w-0">
+                            <div class="flex flex-wrap items-center gap-1.5">
+                                <span class="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 font-semibold text-[10px]">${mode}</span>
+                                <span class="font-semibold text-white break-words">${escapeHtml(item.trigger_text)}</span>
+                            </div>
+                            <p class="text-slate-300 whitespace-pre-line leading-relaxed text-[11px]">${escapeHtml(item.response_text)}</p>
+                        </div>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <button type="button" onclick="probarEnChatDesdeEntrenamiento('${escapeHtml(firstTrigger).replace(/'/g, "\\'")}')" class="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 text-[11px] font-medium" title="Probar esta frase en el chat">
+                                <i class="fa-solid fa-paper-plane mr-1"></i>Probar
+                            </button>
+                            <button type="button" onclick="toggleEntradaEntrenamiento(${item.id})" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[11px]" title="${item.is_active ? 'Pausar' : 'Activar'}">
+                                <i class="fa-solid ${item.is_active ? 'fa-toggle-on text-emerald-400' : 'fa-toggle-off text-slate-500'}"></i>
+                            </button>
+                            <button type="button" onclick="eliminarEntradaEntrenamiento(${item.id})" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-rose-950/70 text-slate-400 hover:text-rose-400 border border-slate-700 text-[11px]" title="Eliminar">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderizarListaNlp(items) {
+            const container = document.getElementById('lista-train-nlp');
+            if (!container) return;
+            if (!items.length) {
+                container.innerHTML = `<div class="p-4 text-center text-xs text-slate-500 rounded-xl border border-dashed border-slate-800">No hay vocabulario NLP personalizado aún.</div>`;
+                return;
+            }
+
+            const badges = {
+                musculo: ['bg-sky-500/15 text-sky-300 border-sky-500/30', 'Músculo'],
+                lesion: ['bg-amber-500/15 text-amber-300 border-amber-500/30', 'Lesión'],
+                entorno: ['bg-indigo-500/15 text-indigo-300 border-indigo-500/30', 'Entorno'],
+                alarma: ['bg-rose-500/20 text-rose-300 border-rose-500/40', 'Alerta Médica'],
+            };
+
+            container.innerHTML = items.map(item => {
+                const cat = item.metadata?.category || 'musculo';
+                const [badgeClass, badgeLabel] = badges[cat] || badges.musculo;
+                const destino = cat === 'alarma'
+                    ? (item.response_text || 'Protocolo emergencia REG-SEG-05')
+                    : (item.metadata?.label || item.metadata?.target || '');
+                const firstKw = (item.trigger_text || '').split(',')[0].trim();
+                const frasePrueba = cat === 'musculo'
+                    ? `Quiero una rutina de ${firstKw} de 20 min`
+                    : (cat === 'lesion' ? `Tengo molestia en ${firstKw}, dame una rutina segura` : firstKw);
+
+                return `
+                    <div class="p-3 rounded-xl border ${item.is_active ? 'border-slate-800 bg-slate-900/70' : 'border-slate-800/50 bg-slate-900/30 opacity-60'} flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="px-2 py-0.5 rounded border text-[10px] font-semibold ${badgeClass}">${badgeLabel}</span>
+                            <span class="font-semibold text-white">${escapeHtml(item.trigger_text)}</span>
+                            <i class="fa-solid fa-arrow-right text-slate-500 text-[10px]"></i>
+                            <span class="text-slate-300">${escapeHtml(destino)}</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <button type="button" onclick="probarEnChatDesdeEntrenamiento('${escapeHtml(frasePrueba).replace(/'/g, "\\'")}')" class="px-2 py-1 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 text-[11px]">
+                                <i class="fa-solid fa-paper-plane mr-1"></i>Probar
+                            </button>
+                            <button type="button" onclick="toggleEntradaEntrenamiento(${item.id})" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[11px]">
+                                <i class="fa-solid ${item.is_active ? 'fa-toggle-on text-emerald-400' : 'fa-toggle-off text-slate-500'}"></i>
+                            </button>
+                            <button type="button" onclick="eliminarEntradaEntrenamiento(${item.id})" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-rose-950/70 text-slate-400 hover:text-rose-400 border border-slate-700 text-[11px]">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderizarListaRag(items) {
+            const container = document.getElementById('lista-train-rag');
+            if (!container) return;
+            if (!items.length) {
+                container.innerHTML = `<div class="p-4 text-center text-xs text-slate-500 rounded-xl border border-dashed border-slate-800">Aún no has agregado ejercicios personalizados al catálogo RAG.</div>`;
+                return;
+            }
+
+            container.innerHTML = items.map(item => {
+                const m = item.metadata || {};
+                const riesgos = (m.zonas_riesgo_evitar || []).length
+                    ? m.zonas_riesgo_evitar.join(', ')
+                    : 'Ninguno';
+                return `
+                    <div class="p-3.5 rounded-xl border ${item.is_active ? 'border-amber-500/25 bg-slate-900/70' : 'border-slate-800 bg-slate-900/30 opacity-60'} flex flex-col sm:flex-row sm:items-start justify-between gap-3 text-xs">
+                        <div class="space-y-1 flex-1">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="font-bold text-amber-300">${escapeHtml(item.trigger_text)}</span>
+                                <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px]">Músculo: ${escapeHtml(m.musculo_principal || 'general')}</span>
+                                <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px]">Entorno: ${escapeHtml((m.entorno || '').replace(/_/g, ' '))}</span>
+                                <span class="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 text-[10px]">Impacto: ${escapeHtml(m.nivel_impacto || 'bajo')}</span>
+                                <span class="px-2 py-0.5 rounded bg-rose-500/10 text-rose-300 text-[10px]">Evitar si lesión: ${escapeHtml(riesgos)}</span>
+                            </div>
+                            <p class="text-[11px] text-slate-300"><i class="fa-solid fa-lightbulb text-amber-400 mr-1"></i>${escapeHtml(item.response_text || 'Sin indicación postural.')}</p>
+                        </div>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <button type="button" onclick="toggleEntradaEntrenamiento(${item.id})" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[11px]">
+                                <i class="fa-solid ${item.is_active ? 'fa-toggle-on text-emerald-400' : 'fa-toggle-off text-slate-500'}"></i>
+                            </button>
+                            <button type="button" onclick="eliminarEntradaEntrenamiento(${item.id})" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-rose-950/70 text-slate-400 hover:text-rose-400 border border-slate-700 text-[11px]">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function guardarEntrenamientoQa(event) {
+            event.preventDefault();
+            const trigger = document.getElementById('train-qa-trigger').value.trim();
+            const responseText = document.getElementById('train-qa-response').value.trim();
+            const matchMode = document.getElementById('train-qa-mode').value;
+
+            try {
+                const res = await fetch('/api/training/entries', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+                    body: JSON.stringify({
+                        type: 'qa',
+                        trigger_text: trigger,
+                        response_text: responseText,
+                        metadata: { match_mode: matchMode },
+                    }),
+                });
+                const data = await res.json();
+                if (res.ok && data.status === 'success') {
+                    document.getElementById('form-train-qa').reset();
+                    mostrarToastEntrenamiento('Respuesta Q&A entrenada con éxito.');
+                    cargarDatosEntrenamiento();
+                } else {
+                    mostrarToastEntrenamiento(data.mensaje || 'Error al guardar Q&A.', 'error');
+                }
+            } catch (e) {
+                mostrarToastEntrenamiento('Error de conexión al guardar Q&A.', 'error');
+            }
+        }
+
+        async function guardarEntrenamientoNlp(event) {
+            event.preventDefault();
+            const category = document.getElementById('train-nlp-category').value;
+            const trigger = document.getElementById('train-nlp-trigger').value.trim();
+            const targetSelect = document.getElementById('train-nlp-target');
+            const target = category === 'alarma' ? 'emergencia' : targetSelect.value;
+            const label = category === 'alarma' ? 'Alerta Médica' : targetSelect.options[targetSelect.selectedIndex]?.text || target;
+            const responseText = category === 'alarma'
+                ? document.getElementById('train-nlp-response').value.trim()
+                : `Sinónimo NLP para ${label}`;
+
+            try {
+                const res = await fetch('/api/training/entries', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+                    body: JSON.stringify({
+                        type: 'synonym',
+                        trigger_text: trigger,
+                        response_text: responseText,
+                        metadata: { category, target, label },
+                    }),
+                });
+                const data = await res.json();
+                if (res.ok && data.status === 'success') {
+                    document.getElementById('train-nlp-trigger').value = '';
+                    document.getElementById('train-nlp-response').value = '';
+                    mostrarToastEntrenamiento('Vocabulario NLP aprendido correctamente.');
+                    cargarDatosEntrenamiento();
+                } else {
+                    mostrarToastEntrenamiento(data.mensaje || 'Error al guardar vocabulario.', 'error');
+                }
+            } catch (e) {
+                mostrarToastEntrenamiento('Error de conexión al guardar vocabulario.', 'error');
+            }
+        }
+
+        async function guardarEntrenamientoRag(event) {
+            event.preventDefault();
+            const name = document.getElementById('train-rag-name').value.trim();
+            const muscle = document.getElementById('train-rag-muscle').value;
+            const env = document.getElementById('train-rag-env').value;
+            const impact = document.getElementById('train-rag-impact').value;
+            const duration = parseInt(document.getElementById('train-rag-duration').value) || 50;
+            const xp = parseInt(document.getElementById('train-rag-xp').value) || 20;
+            const posture = document.getElementById('train-rag-posture').value.trim();
+            const risks = Array.from(document.querySelectorAll('.train-rag-risk:checked')).map(cb => cb.value);
+
+            try {
+                const res = await fetch('/api/training/entries', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+                    body: JSON.stringify({
+                        type: 'exercise',
+                        trigger_text: name,
+                        response_text: posture,
+                        metadata: {
+                            musculo_principal: muscle,
+                            entorno: env,
+                            nivel_impacto: impact,
+                            duracion_estimada_seg: duration,
+                            xp_base: xp,
+                            zonas_riesgo_evitar: risks,
+                        },
+                    }),
+                });
+                const data = await res.json();
+                if (res.ok && data.status === 'success') {
+                    document.getElementById('form-train-rag').reset();
+                    mostrarToastEntrenamiento('Ejercicio inyectado al catálogo RAG.');
+                    cargarDatosEntrenamiento();
+                } else {
+                    mostrarToastEntrenamiento(data.mensaje || 'Error al guardar ejercicio.', 'error');
+                }
+            } catch (e) {
+                mostrarToastEntrenamiento('Error de conexión al guardar ejercicio.', 'error');
+            }
+        }
+
+        async function guardarReglasClinicas(event) {
+            event.preventDefault();
+            const edad = parseInt(document.getElementById('train-rule-age').value);
+            const grasa = parseFloat(document.getElementById('train-rule-fat').value);
+            const joints = document.getElementById('train-rule-joints').value;
+
+            try {
+                const res = await fetch('/api/training/rules', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+                    body: JSON.stringify({
+                        edad_limite_impacto_bajo: edad,
+                        grasa_limite_impacto_bajo: grasa,
+                        articulaciones_monitoreadas: joints,
+                    }),
+                });
+                const data = await res.json();
+                if (res.ok && data.status === 'success') {
+                    mostrarToastEntrenamiento('Reglas clínicas actualizadas en tiempo real.');
+                    cargarDatosEntrenamiento();
+                } else {
+                    mostrarToastEntrenamiento(data.mensaje || 'Error al guardar reglas.', 'error');
+                }
+            } catch (e) {
+                mostrarToastEntrenamiento('Error de conexión al actualizar reglas.', 'error');
+            }
+        }
+
+        async function toggleEntradaEntrenamiento(id) {
+            try {
+                const res = await fetch(`/api/training/entries/${id}/toggle`, {
+                    method: 'PATCH',
+                    headers: { 'X-CSRF-TOKEN': csrfToken },
+                });
+                const data = await res.json();
+                if (res.ok && data.status === 'success') {
+                    mostrarToastEntrenamiento(data.mensaje);
+                    cargarDatosEntrenamiento();
+                }
+            } catch (e) {
+                mostrarToastEntrenamiento('Error al cambiar estado.', 'error');
+            }
+        }
+
+        async function eliminarEntradaEntrenamiento(id) {
+            try {
+                const res = await fetch(`/api/training/entries/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRF-TOKEN': csrfToken },
+                });
+                const data = await res.json();
+                if (res.ok && data.status === 'success') {
+                    mostrarToastEntrenamiento('Entrada eliminada.');
+                    cargarDatosEntrenamiento();
+                }
+            } catch (e) {
+                mostrarToastEntrenamiento('Error al eliminar entrada.', 'error');
+            }
+        }
+
+        function probarEnChatDesdeEntrenamiento(frase) {
+            cerrarModalEntrenamiento();
+            enviarMensajeRapido(frase);
+        }
+
+        async function simularEntrenamientoVivo(event) {
+            event.preventDefault();
+            const msg = document.getElementById('train-sim-input').value.trim();
+            const box = document.getElementById('train-sim-result');
+            if (!msg || !box) return;
+
+            box.classList.remove('hidden');
+            box.innerHTML = `<div class="text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Analizando frase...</div>`;
+
+            try {
+                const res = await fetch('/api/training/simulate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+                    body: JSON.stringify({ message: msg, user_id: getActiveUserId() }),
+                });
+                const data = await res.json();
+                if (res.ok && data.status === 'success') {
+                    const d = data.diagnostico;
+                    const ent = d.entidades_nlp || {};
+                    const musculosTxt = (ent.nombres_musculos || []).length ? ent.nombres_musculos.join(', ') : 'Ninguno específico';
+                    const customExTxt = (d.ejercicios_rag_personalizados_aplicables || []).length
+                        ? d.ejercicios_rag_personalizados_aplicables.join(', ')
+                        : 'Catálogo RAG base';
+
+                    box.innerHTML = `
+                        <div class="flex flex-wrap gap-2">
+                            <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-semibold">Intención: ${escapeHtml(d.intencion_detectada)}</span>
+                            <span class="px-2 py-0.5 rounded bg-sky-500/20 text-sky-300">Origen: ${escapeHtml(d.fuente)}</span>
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] pt-1">
+                            <div class="p-2 rounded bg-slate-900 border border-slate-800"><span class="text-slate-400 block">Tiempo:</span><strong class="text-white">${ent.tiempo ? ent.tiempo + ' min' : 'Por perfil'}</strong></div>
+                            <div class="p-2 rounded bg-slate-900 border border-slate-800"><span class="text-slate-400 block">Músculos:</span><strong class="text-white">${escapeHtml(musculosTxt)}</strong></div>
+                            <div class="p-2 rounded bg-slate-900 border border-slate-800"><span class="text-slate-400 block">Lesión:</span><strong class="text-white">${escapeHtml(ent.lesion || 'Sin cambio')}</strong></div>
+                            <div class="p-2 rounded bg-slate-900 border border-slate-800"><span class="text-slate-400 block">Entorno:</span><strong class="text-white">${escapeHtml(ent.entorno || 'Sin cambio')}</strong></div>
+                        </div>
+                        <div class="text-[11px] text-amber-300">
+                            <i class="fa-solid fa-dumbbell mr-1"></i> Ejercicios propios RAG aplicables: <strong>${escapeHtml(customExTxt)}</strong>
+                        </div>
+                        <div class="p-2.5 rounded bg-slate-900/90 border border-slate-800 text-slate-200 whitespace-pre-line text-[11px]">
+                            <span class="text-emerald-400 font-semibold block mb-1">Vista previa de respuesta:</span>
+                            ${escapeHtml(d.vista_previa_respuesta)}
+                        </div>
+                    `;
+                }
+            } catch (e) {
+                box.innerHTML = `<div class="text-rose-400">Error al ejecutar el simulador.</div>`;
+            }
+        }
+
+        async function exportarEntrenamientoJson() {
+            try {
+                const res = await fetch('/api/training/export');
+                const data = await res.json();
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'hyperion-entrenamiento.json';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+                mostrarToastEntrenamiento('Conocimiento exportado en JSON.');
+            } catch (e) {
+                mostrarToastEntrenamiento('No se pudo exportar el archivo.', 'error');
+            }
+        }
+
+        async function importarEntrenamientoJson(event) {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            try {
+                const text = await file.text();
+                const res = await fetch('/api/training/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+                    body: JSON.stringify({ payload: text }),
+                });
+                const data = await res.json();
+                if (res.ok && data.status === 'success') {
+                    mostrarToastEntrenamiento(data.mensaje);
+                    cargarDatosEntrenamiento();
+                } else {
+                    mostrarToastEntrenamiento(data.mensaje || 'Formato JSON inválido.', 'error');
+                }
+            } catch (e) {
+                mostrarToastEntrenamiento('Error al leer o importar el archivo JSON.', 'error');
+            } finally {
+                event.target.value = '';
+            }
         }
 
         // Inicialización de contexto persistente del aventurero

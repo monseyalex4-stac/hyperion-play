@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\ChatbotTrainingEntry;
 use App\Models\User;
 use App\Models\UserQuest;
 use Illuminate\Database\Seeder;
@@ -69,6 +70,66 @@ class DatabaseSeeder extends Seeder
                 'current_count' => 0,
                 'reward_xp' => 40,
                 'completed' => false,
+            ]
+        );
+
+        // Ejemplos iniciales de entrenamiento manual para el Laboratorio de Hyperion
+        ChatbotTrainingEntry::firstOrCreate(
+            ['type' => 'qa', 'trigger_text' => 'que comer antes de entrenar, pre entreno, comida antes de hacer ejercicio'],
+            [
+                'response_text' => "🍎 ENERGÍA PARA EL GUERRERO (PRE-ENTRENO)\n\nLo ideal 45 a 90 minutos antes de entrenar es combinar un carbohidrato de absorción media (plátano, avena o pan integral) con algo de proteína ligera (yogur griego o huevo) y buena hidratación (400-500 ml de agua). Evita comidas muy grasosas justo antes de la sesión.",
+                'metadata' => ['match_mode' => 'contains'],
+                'is_active' => true,
+                'created_by' => $user->id,
+            ]
+        );
+
+        ChatbotTrainingEntry::firstOrCreate(
+            ['type' => 'synonym', 'trigger_text' => 'conejo, conejos'],
+            [
+                'response_text' => 'Modismo popular para bíceps',
+                'metadata' => [
+                    'category' => 'musculo',
+                    'target' => 'biceps',
+                    'label' => 'Bíceps',
+                    'db_targets' => ['biceps'],
+                ],
+                'is_active' => true,
+                'created_by' => $user->id,
+            ]
+        );
+
+        ChatbotTrainingEntry::firstOrCreate(
+            ['type' => 'synonym', 'trigger_text' => 'menisco, ligamento cruzado'],
+            [
+                'response_text' => 'Términos clínicos relacionados con lesión de rodilla',
+                'metadata' => [
+                    'category' => 'lesion',
+                    'target' => 'rodilla',
+                    'label' => 'Rodilla',
+                ],
+                'is_active' => true,
+                'created_by' => $user->id,
+            ]
+        );
+
+        ChatbotTrainingEntry::firstOrCreate(
+            ['type' => 'exercise', 'trigger_text' => 'Press Militar con Mancuernas'],
+            [
+                'response_text' => 'Espalda recta y abdomen firme; empuja las mancuernas hacia arriba sin arquear la zona lumbar y controla el descenso.',
+                'metadata' => [
+                    'musculo_principal' => 'delts',
+                    'equipo' => 'dumbbell',
+                    'entorno' => 'casa_basico',
+                    'nivel_impacto' => 'bajo',
+                    'nivel_experiencia' => 'intermedio',
+                    'zonas_riesgo_evitar' => ['hombro'],
+                    'tipo_objetivo' => 'fuerza',
+                    'duracion_estimada_seg' => 60,
+                    'xp_base' => 20,
+                ],
+                'is_active' => true,
+                'created_by' => $user->id,
             ]
         );
     }
